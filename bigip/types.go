@@ -1,0 +1,39 @@
+package f5_bigip
+
+import "net/http"
+
+type RestRequest struct {
+	ResName   string
+	Partition string
+	Subfolder string
+
+	Method     string
+	ResUri     string
+	Headers    map[string]interface{}
+	Body       interface{}
+	WithTrans  bool
+	ScheduleIt string
+}
+
+type BIGIP struct {
+	Version       string
+	URL           string
+	Authorization string
+	client        *http.Client
+}
+
+type BIGIPVersion struct {
+	Build   string
+	Date    string
+	Edition string
+	Product string
+	Title   string
+	Version string
+}
+
+type PersistedConfig struct {
+	AS3   string
+	Rest  string
+	CmKey string
+	PsMap map[string]interface{}
+}
