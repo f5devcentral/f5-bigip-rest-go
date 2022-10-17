@@ -2,10 +2,7 @@ module gitee.com/zongzw/f5-bigip-rest
 
 go 1.19
 
-require (
-	gitee.com/zongzw/f5-kic v0.0.0-20221001132332-0d0e3744e858
-	github.com/prometheus/client_golang v1.13.0
-)
+require github.com/prometheus/client_golang v1.13.0
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
