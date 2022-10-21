@@ -255,3 +255,30 @@ func httpRequest(client *http.Client, url, method, payload string, headers map[s
 
 	return utils.HttpRequest(client, url, method, payload, headers)
 }
+
+func GatherKinds(ocfg, ncfg *map[string]interface{}) []string {
+	kinds := []string{
+		"sys/folder",
+	}
+	if ocfg != nil {
+		for _, ress := range *ocfg {
+			for tn := range ress.(map[string]interface{}) {
+				tnarr := strings.Split(tn, "/")
+				t := strings.Join(tnarr[0:len(tnarr)-1], "/")
+				kinds = append(kinds, t)
+			}
+		}
+	}
+	if ncfg != nil {
+		for _, ress := range *ncfg {
+			for tn := range ress.(map[string]interface{}) {
+				tnarr := strings.Split(tn, "/")
+				t := strings.Join(tnarr[0:len(tnarr)-1], "/")
+				kinds = append(kinds, t)
+			}
+		}
+	}
+	kinds = utils.Unified(kinds)
+
+	return kinds
+}

@@ -19,7 +19,7 @@ type SLOG struct {
 func SetupLog(reqid, level string) SLOG {
 	flags := log.Ldate | log.Ltime | log.Lmicroseconds | log.Lmsgprefix
 	levels := []string{"error", "warn", "info", "debug", "trace"}
-	if !Contains(levels, level) {
+	if !Contains(levels, strings.ToLower(level)) {
 		panic("invalid logging level: " + level)
 	}
 	slog := SLOG{

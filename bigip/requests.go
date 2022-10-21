@@ -111,7 +111,7 @@ func (bip *BIGIP) constructSharedRes(kind, name, partition, subfolder string, bo
 	return r, nil
 }
 
-func (bip *BIGIP) GetExistingResources(partition string, ocfg, ncfg *map[string]interface{}) (*map[string]map[string]interface{}, error) {
+func (bip *BIGIP) GetExistingResources(partition string, kinds []string) (*map[string]map[string]interface{}, error) {
 	defer utils.TimeItToPrometheus()()
 
 	exists := map[string]map[string]interface{}{}
@@ -122,29 +122,6 @@ func (bip *BIGIP) GetExistingResources(partition string, ocfg, ncfg *map[string]
 	if !utils.Contains(partitions, partition) {
 		return &exists, nil
 	}
-
-	kinds := []string{
-		"sys/folder",
-	}
-	if ocfg != nil {
-		for _, ress := range *ocfg {
-			for tn := range ress.(map[string]interface{}) {
-				tnarr := strings.Split(tn, "/")
-				t := strings.Join(tnarr[0:len(tnarr)-1], "/")
-				kinds = append(kinds, t)
-			}
-		}
-	}
-	if ncfg != nil {
-		for _, ress := range *ncfg {
-			for tn := range ress.(map[string]interface{}) {
-				tnarr := strings.Split(tn, "/")
-				t := strings.Join(tnarr[0:len(tnarr)-1], "/")
-				kinds = append(kinds, t)
-			}
-		}
-	}
-	kinds = utils.Unified(kinds)
 
 	for _, kind := range kinds {
 		if !(strings.HasPrefix(kind, "sys/") || strings.HasPrefix(kind, "ltm/") || strings.HasPrefix(kind, "/net")) {
@@ -180,7 +157,8 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 	rDelFldrs := []RestRequest{}
 	rCrtFldrs := []RestRequest{}
 
-	existings, err := bip.GetExistingResources(partition, ocfg, ncfg)
+	kinds := GatherKinds(ocfg, ncfg)
+	existings, err := bip.GetExistingResources(partition, kinds)
 	if err != nil {
 		return nil, err
 	} else {
