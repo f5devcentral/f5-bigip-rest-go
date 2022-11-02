@@ -395,18 +395,12 @@ func (bip *BIGIP) DeletePartition(name string) error {
 	if name == "Common" {
 		return nil
 	}
-	uri := fmt.Sprintf("sys/folder?$filter=partition+eq+%s", name)
-	folders, err := bip.Exist(uri, "", "", "")
-	if err != nil || folders == nil {
+	if f, err := bip.Exist("sys/folder", "", name, ""); err != nil {
 		return err
-	}
-	items := (*folders)["items"].([]interface{})
-	if len(items) > 0 {
-		slog.Infof("there were still folders in partition %s: %v", name, items)
+	} else if f == nil {
 		return nil
-	} else {
-		return bip.Delete("sys/folder", name, "", "")
 	}
+	return bip.Delete("sys/folder", name, "", "")
 }
 
 func (bip *BIGIP) LoadDataGroup(dgkey string) (*PersistedConfig, error) {
