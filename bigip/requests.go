@@ -51,6 +51,19 @@ func (bip *BIGIP) constructLTMRes(kind, name, partition, subfolder string, body 
 	}
 }
 
+func (bip *BIGIP) constructNetRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
+	return RestRequest{
+		Method:    "NOPE",
+		Headers:   map[string]interface{}{},
+		Body:      body,
+		ResUri:    "/mgmt/tm/" + kind,
+		ResName:   name,
+		Partition: partition,
+		Subfolder: subfolder,
+		WithTrans: true,
+	}
+}
+
 func (bip *BIGIP) constructSysRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
 	return RestRequest{
 		Method:    "NOPE",
@@ -124,7 +137,7 @@ func (bip *BIGIP) GetExistingResources(partition string, kinds []string) (*map[s
 	}
 
 	for _, kind := range kinds {
-		if !(strings.HasPrefix(kind, "sys/") || strings.HasPrefix(kind, "ltm/") || strings.HasPrefix(kind, "/net")) {
+		if !(strings.HasPrefix(kind, "sys/") || strings.HasPrefix(kind, "ltm/") || strings.HasPrefix(kind, "net/")) {
 			continue
 		}
 		exists[kind] = map[string]interface{}{}
@@ -350,6 +363,9 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 			switch rootKind {
 			case "ltm":
 				r = bip.constructLTMRes(t, n, partition, fn, body)
+				r.Method = opr2method(operation, checkexists(t, partition, fn, n))
+			case "net":
+				r = bip.constructNetRes(t, n, partition, fn, body)
 				r.Method = opr2method(operation, checkexists(t, partition, fn, n))
 			case "sys":
 				r = bip.constructSysRes(t, n, partition, fn, body)

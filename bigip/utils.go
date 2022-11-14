@@ -30,6 +30,9 @@ func Initialize(url, user, password, logLevel string) *BIGIP {
 		`ltm/rule$`,
 		`ltm/virtual-address`,
 		`ltm/virtual$`,
+		`net/arp$`,
+		`net/fdb$`,
+		`net/ndp$`,
 	}
 
 	BIGIPiControlTimeCostTotal = prometheus.NewGaugeVec(
