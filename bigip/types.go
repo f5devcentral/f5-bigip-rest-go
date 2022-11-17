@@ -6,6 +6,7 @@ type RestRequest struct {
 	ResName   string
 	Partition string
 	Subfolder string
+	Kind      string
 
 	Method     string
 	ResUri     string

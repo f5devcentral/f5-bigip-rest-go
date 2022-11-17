@@ -11,3 +11,5 @@ var (
 	BIGIPiControlTimeCostTotal *prometheus.GaugeVec
 	BIGIPiControlTimeCostCount *prometheus.GaugeVec
 )
+
+const TmUriPrefix = "/mgmt/tm"

@@ -61,3 +61,138 @@ func Test_SortIt(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func Test_FieldsIsExpected(t *testing.T) {
+	type args struct {
+		fields   map[string]interface{}
+		expected map[string]interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "empty json",
+			args: args{
+				fields:   map[string]interface{}{},
+				expected: map[string]interface{}{},
+			},
+			want: true,
+		},
+		{
+			name: "1 field json true",
+			args: args{
+				fields: map[string]interface{}{
+					"a": 1,
+				},
+				expected: map[string]interface{}{
+					"a": 1,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "1 field json false",
+			args: args{
+				fields: map[string]interface{}{
+					"a": 1,
+				},
+				expected: map[string]interface{}{
+					"a": 2,
+				},
+			},
+			want: false,
+		},
+
+		{
+			name: "n field json true",
+			args: args{
+				fields: map[string]interface{}{
+					"a": 1,
+				},
+				expected: map[string]interface{}{
+					"a": 1,
+					"b": "x",
+				},
+			},
+			want: true,
+		},
+
+		{
+			name: "n field json false",
+			args: args{
+				fields: map[string]interface{}{
+					"a": 1,
+				},
+				expected: map[string]interface{}{
+					"a": 2,
+					"b": "x",
+				},
+			},
+			want: false,
+		},
+
+		{
+			name: "n field json true",
+			args: args{
+				fields: map[string]interface{}{
+					"a": map[string]interface{}{
+						"x": 1,
+						"y": 2,
+					},
+				},
+				expected: map[string]interface{}{
+					"a": map[string]interface{}{
+						"x": 1,
+						"y": 2,
+					},
+					"b": "x",
+				},
+			},
+			want: true,
+		},
+
+		{
+			name: "n field json true",
+			args: args{
+				fields: map[string]interface{}{
+					"a": []interface{}{
+						1, "a",
+					},
+				},
+				expected: map[string]interface{}{
+					"a": []interface{}{
+						1, "a",
+					},
+					"b": "x",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "n field json false",
+			args: args{
+				fields: map[string]interface{}{
+					"a": []interface{}{
+						"a", 1,
+					},
+				},
+				expected: map[string]interface{}{
+					"a": []interface{}{
+						1, "a",
+					},
+					"b": "x",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FieldsIsExpected(tt.args.fields, tt.args.expected); got != tt.want {
+				t.Errorf("FieldsIsExpected() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

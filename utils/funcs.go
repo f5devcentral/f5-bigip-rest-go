@@ -140,19 +140,22 @@ func Keyname(s ...string) string {
 // }
 
 // performance: coping follow object 1000000 times cost: 2554 ms
-// 		sub := map[string]interface{}{
-// 			"suba": "string",
-// 			"subb": 12345,
-// 			"x":    true,
-// 		}
+//
+//	sub := map[string]interface{}{
+//		"suba": "string",
+//		"subb": 12345,
+//		"x":    true,
+//	}
+//
 // function:
-// 		a, e := DeepCopy(nil)
-// 		a, e := DeepCopy([]string{"1", "2"})
-// 		a, e := DeepCopy(true)
-// 		a, e := DeepCopy(123)
-// 		a, e := DeepCopy(3.14)
-// 		a, e := DeepCopy(map[string]interface{}{})
-// 		a, e := DeepCopy("123")
+//
+//	a, e := DeepCopy(nil)
+//	a, e := DeepCopy([]string{"1", "2"})
+//	a, e := DeepCopy(true)
+//	a, e := DeepCopy(123)
+//	a, e := DeepCopy(3.14)
+//	a, e := DeepCopy(map[string]interface{}{})
+//	a, e := DeepCopy("123")
 func DeepCopy(value interface{}) (interface{}, error) {
 	if b, err := json.Marshal(value); err != nil {
 		return nil, err
@@ -336,4 +339,14 @@ func NeedRetry(err error) bool {
 	} else {
 		return true
 	}
+}
+
+func FieldsIsExpected(fields, expected map[string]interface{}) bool {
+	for k, v := range fields {
+		if exp, f := expected[k]; !f || !reflect.DeepEqual(v, exp) {
+			return false
+		}
+	}
+
+	return true
 }

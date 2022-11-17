@@ -285,3 +285,16 @@ func GatherKinds(ocfg, ncfg *map[string]interface{}) []string {
 
 	return kinds
 }
+
+func getFromExists(kind, partition, subfolder, name string, exists *map[string]map[string]interface{}) *interface{} {
+	if exists == nil {
+		return nil
+	}
+	if res, kf := (*exists)[kind]; kf {
+		pfn := utils.Keyname(partition, subfolder, name)
+		if rlt, rf := res[pfn]; rf {
+			return &rlt
+		}
+	}
+	return nil
+}

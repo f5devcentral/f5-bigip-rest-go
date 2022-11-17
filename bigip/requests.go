@@ -31,6 +31,7 @@ func (bip *BIGIP) constructFolder(name, partition string) RestRequest {
 			"partition": partition,
 		},
 		ResUri:    "/mgmt/tm/" + kind,
+		Kind:      kind,
 		ResName:   name,
 		Partition: partition,
 		Subfolder: "",
@@ -44,6 +45,7 @@ func (bip *BIGIP) constructLTMRes(kind, name, partition, subfolder string, body 
 		Headers:   map[string]interface{}{},
 		Body:      body,
 		ResUri:    "/mgmt/tm/" + kind,
+		Kind:      kind,
 		ResName:   name,
 		Partition: partition,
 		Subfolder: subfolder,
@@ -57,6 +59,7 @@ func (bip *BIGIP) constructNetRes(kind, name, partition, subfolder string, body 
 		Headers:   map[string]interface{}{},
 		Body:      body,
 		ResUri:    "/mgmt/tm/" + kind,
+		Kind:      kind,
 		ResName:   name,
 		Partition: partition,
 		Subfolder: subfolder,
@@ -70,6 +73,7 @@ func (bip *BIGIP) constructSysRes(kind, name, partition, subfolder string, body 
 		Body:      body,
 		Headers:   map[string]interface{}{},
 		ResUri:    "/mgmt/tm/" + kind,
+		Kind:      kind,
 		ResName:   name,
 		Partition: partition,
 		Subfolder: subfolder,
@@ -97,6 +101,7 @@ func (bip *BIGIP) constructSharedRes(kind, name, partition, subfolder string, bo
 				Partition: partition,
 				Subfolder: subfolder,
 				ResName:   name,
+				Kind:      kind,
 				WithTrans: false,
 			}
 		} else if operation == "delete" {
@@ -113,6 +118,7 @@ func (bip *BIGIP) constructSharedRes(kind, name, partition, subfolder string, bo
 				Partition: partition,
 				Subfolder: subfolder,
 				ResName:   name,
+				Kind:      kind,
 				WithTrans: false,
 			}
 		}
@@ -189,7 +195,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 		}
 	}
 
-	sweepcmds := func(dels, crts map[string][]RestRequest, patchit bool) ([]RestRequest, []RestRequest, []RestRequest) {
+	sweepcmds := func(dels, crts map[string][]RestRequest) ([]RestRequest, []RestRequest, []RestRequest) {
 		c, d, u := []RestRequest{}, []RestRequest{}, []RestRequest{}
 		for _, t := range ResOrder {
 			rex := regexp.MustCompile(t)
@@ -228,11 +234,22 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 						if needcreat {
 							cr.Method = "POST"
 							c = append(c, cr)
-						} else if !same {
-							if patchit {
+						} else {
+							if !same {
 								cr.Method = "PATCH"
+								u = append(u, cr)
+							} else {
+								if expected := getFromExists(cr.Kind, cr.Partition, cr.Subfolder, cr.ResName, existings); expected != nil {
+									if !utils.FieldsIsExpected(cr.Body.(map[string]interface{}), (*expected).(map[string]interface{})) {
+										cr.Method = "PATCH"
+										u = append(u, cr)
+									} else {
+										// nothing, igore this RestRequest because all fields are expected.
+									}
+								} else {
+									c = append(c, cr)
+								}
 							}
-							u = append(u, cr)
 						}
 						delete(drmap, jn)
 					} else {
@@ -270,7 +287,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 		cf, df, _ := sweepcmds(
 			map[string][]RestRequest{"sys/folder": rDelFldrs},
 			map[string][]RestRequest{"sys/folder": rCrtFldrs},
-			true)
+		)
 
 		vcmdDels, vcmdCrts := []RestRequest{}, []RestRequest{}
 		// if there were virtual-address change ...
@@ -291,7 +308,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 				"ltm/virtual":         rCrts["ltm/virtual"],
 				"ltm/virtual-address": rCrts["ltm/virtual-address"],
 			}
-			cvl, dvl, uvl := sweepcmds(rDelVs, rCrtVs, false)
+			cvl, dvl, uvl := sweepcmds(rDelVs, rCrtVs)
 			if len(cvl)+len(dvl)+len(uvl) != 0 {
 				delete(rDels, "ltm/virtual")
 				delete(rDels, "ltm/virtual-address")
@@ -305,7 +322,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 			}
 		}
 
-		cl, dl, ul := sweepcmds(rDels, rCrts, true)
+		cl, dl, ul := sweepcmds(rDels, rCrts)
 
 		cmds = append(cmds, cf...)
 		cmds = append(cmds, cl...)
@@ -332,24 +349,11 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 	slog.Debugf("generating '%s' cmds for partition %s's config", operation, partition)
 	rrs := map[string][]RestRequest{}
 
-	checkexists := func(kind, partition, subfolder, name string) bool {
-		if exists == nil {
-			return false
-		}
-		if res, kf := (*exists)[kind]; kf {
-			pfn := utils.Keyname(partition, subfolder, name)
-			if _, rf := res[pfn]; rf {
-				return true
-			}
-		}
-		return false
-	}
-
 	rFldrs := []RestRequest{}
 	for fn, ress := range cfg {
 		if fn != "" {
 			rSubfolder := bip.constructFolder(fn, partition)
-			rSubfolder.Method = opr2method(operation, checkexists("sys/folder", partition, "", fn))
+			rSubfolder.Method = opr2method(operation, nil != getFromExists("sys/folder", partition, "", fn, exists))
 			rFldrs = append(rFldrs, rSubfolder)
 		}
 
@@ -363,13 +367,13 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 			switch rootKind {
 			case "ltm":
 				r = bip.constructLTMRes(t, n, partition, fn, body)
-				r.Method = opr2method(operation, checkexists(t, partition, fn, n))
+				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "net":
 				r = bip.constructNetRes(t, n, partition, fn, body)
-				r.Method = opr2method(operation, checkexists(t, partition, fn, n))
+				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "sys":
 				r = bip.constructSysRes(t, n, partition, fn, body)
-				r.Method = opr2method(operation, checkexists(t, partition, fn, n))
+				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "shared":
 				r, err = bip.constructSharedRes(t, n, partition, fn, body, operation)
 			default:
