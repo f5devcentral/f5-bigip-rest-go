@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"gitee.com/zongzw/f5-bigip-rest/utils"
@@ -194,87 +193,12 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 		}
 	}
 
-	sweepcmds := func(dels, crts map[string][]RestRequest) ([]RestRequest, []RestRequest, []RestRequest) {
-		c, d, u := []RestRequest{}, []RestRequest{}, []RestRequest{}
-		for _, t := range ResOrder {
-			rex := regexp.MustCompile(t)
-			ks := []string{}
-			for k := range dels {
-				if rex.MatchString(k) {
-					ks = append(ks, k)
-				}
-			}
-			for k := range crts {
-				if rex.MatchString(k) {
-					ks = append(ks, k)
-				}
-			}
-			ks = utils.Unified(ks)
-
-			for _, k := range ks {
-				drs, crs := []RestRequest{}, []RestRequest{}
-				if rr, f := dels[k]; f {
-					drs = rr
-				}
-				if rr, f := crts[k]; f {
-					crs = rr
-				}
-				drmap := map[string]RestRequest{}
-				for _, dr := range drs {
-					drmap[utils.Keyname(dr.Partition, dr.Subfolder, dr.ResName)] = dr
-				}
-				for _, cr := range crs {
-					jn := utils.Keyname(cr.Partition, cr.Subfolder, cr.ResName)
-					if dr, f := drmap[jn]; f {
-						same := utils.DeepEqual(
-							dr.Body.(map[string]interface{}),
-							cr.Body.(map[string]interface{}))
-						needcreat := dr.Method == "NOPE"
-						if needcreat {
-							cr.Method = "POST"
-							c = append(c, cr)
-						} else {
-							if !same {
-								cr.Method = "PATCH"
-								u = append(u, cr)
-							} else {
-								if expected := getFromExists(cr.Kind, cr.Partition, cr.Subfolder, cr.ResName, existings); expected != nil {
-									if !utils.FieldsIsExpected(cr.Body, (*expected)) {
-										cr.Method = "PATCH"
-										u = append(u, cr)
-									} else {
-										// nothing, igore this RestRequest because all fields are expected.
-									}
-								} else {
-									c = append(c, cr)
-								}
-							}
-						}
-						delete(drmap, jn)
-					} else {
-						c = append(c, cr)
-					}
-				}
-				for _, dr := range drmap {
-					d = append(d, dr)
-				}
-			}
-		}
-
-		// reverse the order of deletion
-		dd := []RestRequest{}
-		for _, dr := range d {
-			dd = append([]RestRequest{dr}, dd...)
-		}
-
-		return c, dd, u
-	}
-
 	laycmds := func() []RestRequest {
 		cmds := []RestRequest{}
-		cf, df, _ := sweepcmds(
+		cf, df, _ := sweepCmds(
 			map[string][]RestRequest{"sys/folder": rDelFldrs},
 			map[string][]RestRequest{"sys/folder": rCrtFldrs},
+			existings,
 		)
 
 		vcmdDels, vcmdCrts := []RestRequest{}, []RestRequest{}
@@ -296,7 +220,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 				"ltm/virtual":         rCrts["ltm/virtual"],
 				"ltm/virtual-address": rCrts["ltm/virtual-address"],
 			}
-			cvl, dvl, uvl := sweepcmds(rDelVs, rCrtVs)
+			cvl, dvl, uvl := sweepCmds(rDelVs, rCrtVs, existings)
 			if len(cvl)+len(dvl)+len(uvl) != 0 {
 				delete(rDels, "ltm/virtual")
 				delete(rDels, "ltm/virtual-address")
@@ -310,7 +234,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 			}
 		}
 
-		cl, dl, ul := sweepcmds(rDels, rCrts)
+		cl, dl, ul := sweepCmds(rDels, rCrts, existings)
 
 		cmds = append(cmds, cf...)
 		cmds = append(cmds, cl...)
