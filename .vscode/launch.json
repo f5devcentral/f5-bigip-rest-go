@@ -10,9 +10,11 @@
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}/utils",
+            // "program": "${workspaceFolder}/bigip",
             "args": [
                 "-test.v",
                 "-test.run",
+                // "Test_layoutCmds"
                 "Test_FieldsIsExpected"
             ]
         },

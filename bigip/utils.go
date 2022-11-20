@@ -13,8 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func Initialize(url, user, password, logLevel string) *BIGIP {
-	slog = utils.SetupLog("", logLevel)
+func init() {
 	ResOrder = []string{
 		`sys/folder`,
 		`shared/file-transfer/uploads`,
@@ -34,7 +33,6 @@ func Initialize(url, user, password, logLevel string) *BIGIP {
 		`net/fdb$`,
 		`net/ndp$`,
 	}
-
 	BIGIPiControlTimeCostTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "bigip_icontrol_timecost_total",
@@ -50,7 +48,10 @@ func Initialize(url, user, password, logLevel string) *BIGIP {
 		},
 		[]string{"method", "url"},
 	)
+}
 
+func Initialize(url, user, password, logLevel string) *BIGIP {
+	slog = utils.SetupLog("", logLevel)
 	return setupBIGIP(url, user, password)
 }
 
@@ -206,30 +207,56 @@ func opr2method(operation string, exist bool) string {
 	}
 }
 
-func sortRestRequests(rrmap map[string][]RestRequest, operation string) []RestRequest {
-	rtn := []RestRequest{}
-	orderDeploy := ResOrder
-	orderDelete := []string{}
-	for i := len(orderDeploy) - 1; i >= 0; i-- {
-		orderDelete = append(orderDelete, orderDeploy[i])
+// func sortRestRequests(rrmap map[string][]RestRequest, operation string) []RestRequest {
+// 	rtn := []RestRequest{}
+// 	orderDeploy := ResOrder
+// 	orderDelete := []string{}
+// 	for i := len(orderDeploy) - 1; i >= 0; i-- {
+// 		orderDelete = append(orderDelete, orderDeploy[i])
+// 	}
+// 	var order []string
+// 	if operation == "deploy" {
+// 		order = orderDeploy
+// 	} else if operation == "delete" {
+// 		order = orderDelete
+// 	}
+// 	for _, t := range order {
+// 		rex := regexp.MustCompile(t)
+// 		for k, rr := range rrmap {
+// 			if rex.MatchString(k) {
+// 				rtn = append(rtn, rr...)
+// 				break
+// 			}
+// 		}
+// 	}
+
+//		return rtn
+//	}
+
+func sortRestRequests(unsorted []RestRequest, reversed bool) []RestRequest {
+	order := ResOrder
+	if reversed {
+		order = []string{}
+		for i := len(ResOrder) - 1; i >= 0; i-- {
+			order = append(order, ResOrder[i])
+		}
 	}
-	var order []string
-	if operation == "deploy" {
-		order = orderDeploy
-	} else if operation == "delete" {
-		order = orderDelete
+	sorted := []RestRequest{}
+	m := map[string][]RestRequest{}
+	for _, r := range unsorted {
+		if _, f := m[r.Kind]; !f {
+			m[r.Kind] = []RestRequest{}
+		}
+		m[r.Kind] = append(m[r.Kind], r)
 	}
-	for _, t := range order {
-		rex := regexp.MustCompile(t)
-		for k, rr := range rrmap {
-			if rex.MatchString(k) {
-				rtn = append(rtn, rr...)
-				break
+	for _, krex := range order {
+		for k, rs := range m {
+			if matched, err := regexp.MatchString(krex, k); err == nil && matched {
+				sorted = append(sorted, rs...)
 			}
 		}
 	}
-
-	return rtn
+	return sorted
 }
 
 func httpRequest(client *http.Client, url, method, payload string, headers map[string]string) (int, []byte, error) {
@@ -297,4 +324,114 @@ func getFromExists(kind, partition, subfolder, name string, exists *map[string]m
 		}
 	}
 	return nil
+}
+
+func virtualAddressNameDismatched(rr []RestRequest) bool {
+	for _, r := range rr {
+		if r.ResUri == "/mgmt/tm/ltm/virtual-address" {
+			if jbody, ok := r.Body.(map[string]interface{}); ok && jbody["address"] != r.ResName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func sweepCmds(dels, crts map[string][]RestRequest, existings *map[string]map[string]interface{}) ([]RestRequest, []RestRequest, []RestRequest) {
+	c, d, u := []RestRequest{}, []RestRequest{}, []RestRequest{}
+
+	splitCmds := func(drs, crs []RestRequest) {
+		dl := []string{}
+		dm := map[string]RestRequest{}
+		for _, dr := range drs {
+			pfn := utils.Keyname(dr.Partition, dr.Subfolder, dr.ResName)
+			dl = append(dl, pfn)
+			dm[pfn] = dr
+		}
+		cl := []string{}
+		cm := map[string]RestRequest{}
+		for _, cr := range crs {
+			pfn := utils.Keyname(cr.Partition, cr.Subfolder, cr.ResName)
+			cl = append(cl, pfn)
+			cm[pfn] = cr
+		}
+		sc, sd, su := utils.Diff(dl, cl)
+		for _, s := range sc {
+			c = append(c, cm[s])
+		}
+		for _, s := range sd {
+			d = append(d, dm[s])
+		}
+		for _, s := range su {
+			u = append(u, cm[s])
+		}
+	}
+
+	for k, drs := range dels {
+		if _, f := crts[k]; !f {
+			d = append(d, drs...)
+		}
+	}
+	for k, crs := range crts {
+		if _, f := dels[k]; !f {
+			c = append(c, crs...)
+		}
+	}
+	for k, crs := range crts {
+		if drs, f := dels[k]; f {
+			splitCmds(drs, crs)
+		}
+	}
+
+	cc, dd, uu := []RestRequest{}, []RestRequest{}, []RestRequest{}
+
+	for _, r := range c {
+		b := getFromExists(r.Kind, r.Partition, r.Subfolder, r.ResName, existings)
+		if b == nil {
+			r.Method = "POST"
+			cc = append(cc, r)
+		} else {
+			if !utils.FieldsIsExpected(r.Body, *b) {
+				r.Method = "PATCH"
+				uu = append(uu, r)
+			}
+		}
+	}
+	for _, r := range d {
+		b := getFromExists(r.Kind, r.Partition, r.Subfolder, r.ResName, existings)
+		if b == nil {
+			r.Method = "NOPE"
+		} else {
+			r.Method = "DELETE"
+			dd = append(dd, r)
+		}
+	}
+	for _, r := range u {
+		b := getFromExists(r.Kind, r.Partition, r.Subfolder, r.ResName, existings)
+		if b == nil {
+			r.Method = "POST"
+			cc = append(cc, r)
+		} else {
+			if !utils.FieldsIsExpected(r.Body, *b) {
+				r.Method = "PATCH"
+				uu = append(uu, r)
+			}
+		}
+	}
+
+	return cc, dd, uu
+}
+
+func layoutCmds(c, d, u []RestRequest) []RestRequest {
+	cmds := []RestRequest{}
+
+	cc := sortRestRequests(c, false)
+	dd := sortRestRequests(d, true)
+	uu := sortRestRequests(u, false)
+
+	cmds = append(cmds, cc...)
+	cmds = append(cmds, uu...)
+	cmds = append(cmds, dd...)
+
+	return cmds
 }

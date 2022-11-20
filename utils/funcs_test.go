@@ -64,8 +64,8 @@ func Test_SortIt(t *testing.T) {
 
 func Test_FieldsIsExpected(t *testing.T) {
 	type args struct {
-		fields   map[string]interface{}
-		expected map[string]interface{}
+		fields   interface{}
+		expected interface{}
 	}
 	tests := []struct {
 		name string
@@ -186,6 +186,43 @@ func Test_FieldsIsExpected(t *testing.T) {
 				},
 			},
 			want: false,
+		},
+		{
+			name: "nil nil true",
+			args: args{
+				fields:   nil,
+				expected: nil,
+			},
+			want: true,
+		},
+		{
+			name: "nil json false",
+			args: args{
+				fields: nil,
+				expected: map[string]interface{}{
+					"a": []interface{}{
+						1, "a",
+					},
+					"b": "x",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "array true",
+			args: args{
+				fields:   []string{"a", "b"},
+				expected: []string{"a", "b"},
+			},
+			want: true,
+		},
+		{
+			name: "string true",
+			args: args{
+				fields:   "f5-bigip-rest",
+				expected: "f5-bigip-rest",
+			},
+			want: true,
 		},
 	}
 	for _, tt := range tests {

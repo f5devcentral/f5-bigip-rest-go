@@ -180,18 +180,17 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 	existings, err := bip.GetExistingResources(partition, kinds)
 	if err != nil {
 		return nil, err
-	} else {
-		if ocfg != nil {
-			var err error
-			if rDelFldrs, rDels, err = bip.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {
-				return &[]RestRequest{}, err
-			}
+	}
+	if ocfg != nil {
+		var err error
+		if rDelFldrs, rDels, err = bip.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {
+			return &[]RestRequest{}, err
 		}
-		if ncfg != nil {
-			var err error
-			if rCrtFldrs, rCrts, err = bip.cfg2RestRequests(partition, "deploy", *ncfg, existings); err != nil {
-				return &[]RestRequest{}, err
-			}
+	}
+	if ncfg != nil {
+		var err error
+		if rCrtFldrs, rCrts, err = bip.cfg2RestRequests(partition, "deploy", *ncfg, existings); err != nil {
+			return &[]RestRequest{}, err
 		}
 	}
 
@@ -240,7 +239,7 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 								u = append(u, cr)
 							} else {
 								if expected := getFromExists(cr.Kind, cr.Partition, cr.Subfolder, cr.ResName, existings); expected != nil {
-									if !utils.FieldsIsExpected(cr.Body.(map[string]interface{}), (*expected).(map[string]interface{})) {
+									if !utils.FieldsIsExpected(cr.Body, (*expected)) {
 										cr.Method = "PATCH"
 										u = append(u, cr)
 									} else {
@@ -269,17 +268,6 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 		}
 
 		return c, dd, u
-	}
-
-	virtualAddressNameDismatched := func(rr []RestRequest) bool {
-		for _, r := range rr {
-			if r.ResUri == "/mgmt/tm/ltm/virtual-address" {
-				if jbody, ok := r.Body.(map[string]interface{}); ok && jbody["address"] != r.ResName {
-					return true
-				}
-			}
-		}
-		return false
 	}
 
 	laycmds := func() []RestRequest {
@@ -314,8 +302,8 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 				delete(rDels, "ltm/virtual-address")
 				delete(rCrts, "ltm/virtual")
 				delete(rCrts, "ltm/virtual-address")
-				vcmdDels = sortRestRequests(rDelVs, "delete")
-				vcmdCrts = sortRestRequests(rCrtVs, "deploy")
+				vcmdDels = sortRestRequests(append(rDels["ltm/virtual"], rDels["ltm/virtual-address"]...), true)
+				vcmdCrts = sortRestRequests(append(rCrts["ltm/virtual"], rCrts["ltm/virtual-address"]...), false)
 				for i := range vcmdCrts {
 					vcmdCrts[i].Method = "POST"
 				}

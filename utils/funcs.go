@@ -341,12 +341,21 @@ func NeedRetry(err error) bool {
 	}
 }
 
-func FieldsIsExpected(fields, expected map[string]interface{}) bool {
-	for k, v := range fields {
-		if exp, f := expected[k]; !f || !reflect.DeepEqual(v, exp) {
-			return false
-		}
+func FieldsIsExpected(fields, expected interface{}) bool {
+	if reflect.TypeOf(fields) != reflect.TypeOf(expected) {
+		return false
 	}
-
-	return true
+	if fields == nil {
+		return true
+	}
+	if reflect.TypeOf(fields).Kind().String() == "map" {
+		for k, v := range fields.(map[string]interface{}) {
+			if exp, f := expected.(map[string]interface{})[k]; !f || !reflect.DeepEqual(v, exp) {
+				return false
+			}
+		}
+		return true
+	} else {
+		return reflect.DeepEqual(fields, expected)
+	}
 }
