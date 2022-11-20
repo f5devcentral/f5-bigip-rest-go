@@ -233,7 +233,7 @@ func opr2method(operation string, exist bool) string {
 //		return rtn
 //	}
 
-func sortRestRequests(unsorted []RestRequest, reversed bool) []RestRequest {
+func sortCmds(unsorted []RestRequest, reversed bool) []RestRequest {
 	order := ResOrder
 	if reversed {
 		order = []string{}
@@ -425,9 +425,9 @@ func sweepCmds(dels, crts map[string][]RestRequest, existings *map[string]map[st
 func layoutCmds(c, d, u []RestRequest) []RestRequest {
 	cmds := []RestRequest{}
 
-	cc := sortRestRequests(c, false)
-	dd := sortRestRequests(d, true)
-	uu := sortRestRequests(u, false)
+	cc := sortCmds(c, false)
+	dd := sortCmds(d, true)
+	uu := sortCmds(u, false)
 
 	cmds = append(cmds, cc...)
 	cmds = append(cmds, uu...)

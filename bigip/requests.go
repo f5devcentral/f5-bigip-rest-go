@@ -172,8 +172,6 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 
 	rDels := map[string][]RestRequest{}
 	rCrts := map[string][]RestRequest{}
-	rDelFldrs := []RestRequest{}
-	rCrtFldrs := []RestRequest{}
 
 	kinds := GatherKinds(ocfg, ncfg)
 	existings, err := bip.GetExistingResources(partition, kinds)
@@ -182,74 +180,59 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 	}
 	if ocfg != nil {
 		var err error
-		if rDelFldrs, rDels, err = bip.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {
+		if rDels, err = bip.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {
 			return &[]RestRequest{}, err
 		}
 	}
 	if ncfg != nil {
 		var err error
-		if rCrtFldrs, rCrts, err = bip.cfg2RestRequests(partition, "deploy", *ncfg, existings); err != nil {
+		if rCrts, err = bip.cfg2RestRequests(partition, "deploy", *ncfg, existings); err != nil {
 			return &[]RestRequest{}, err
 		}
 	}
 
-	laycmds := func() []RestRequest {
-		cmds := []RestRequest{}
-		cf, df, _ := sweepCmds(
-			map[string][]RestRequest{"sys/folder": rDelFldrs},
-			map[string][]RestRequest{"sys/folder": rCrtFldrs},
-			existings,
-		)
-
-		vcmdDels, vcmdCrts := []RestRequest{}, []RestRequest{}
-		// if there were virtual-address change ...
-		// this 'if' block is used to handle the case of: virtual-address's name is not IP addr which
-		// is deployed via AS3 ever before.
-		// i.e.   "app_svc_vip": {
-		// 			"class": "Service_Address",
-		// 			"virtualAddress": "172.16.142.112",
-		// 			"arpEnabled": true
-		// 		  },
-		// this case may happen in migration process
-		if virtualAddressNameDismatched(append(rDels["ltm/virtual-address"], rCrts["ltm/virtual-address"]...)) {
-			rDelVs := map[string][]RestRequest{
-				"ltm/virtual":         rDels["ltm/virtual"],
-				"ltm/virtual-address": rDels["ltm/virtual-address"],
+	vcmdDels, vcmdCrts := []RestRequest{}, []RestRequest{}
+	// if there were virtual-address change ...
+	// this 'if' block is used to handle the case of: virtual-address's name is not IP addr which
+	// is deployed via AS3 ever before.
+	// i.e.   "app_svc_vip": {
+	// 			"class": "Service_Address",
+	// 			"virtualAddress": "172.16.142.112",
+	// 			"arpEnabled": true
+	// 		  },
+	// this case may happen in migration process
+	if virtualAddressNameDismatched(append(rDels["ltm/virtual-address"], rCrts["ltm/virtual-address"]...)) {
+		rDelVs := map[string][]RestRequest{
+			"ltm/virtual":         rDels["ltm/virtual"],
+			"ltm/virtual-address": rDels["ltm/virtual-address"],
+		}
+		rCrtVs := map[string][]RestRequest{
+			"ltm/virtual":         rCrts["ltm/virtual"],
+			"ltm/virtual-address": rCrts["ltm/virtual-address"],
+		}
+		cvl, dvl, uvl := sweepCmds(rDelVs, rCrtVs, existings)
+		if len(cvl)+len(dvl)+len(uvl) != 0 {
+			delete(rDels, "ltm/virtual")
+			delete(rDels, "ltm/virtual-address")
+			delete(rCrts, "ltm/virtual")
+			delete(rCrts, "ltm/virtual-address")
+			vcmdDels = sortCmds(append(rDels["ltm/virtual"], rDels["ltm/virtual-address"]...), true)
+			for i := range vcmdDels {
+				vcmdDels[i].Method = "DELETE"
 			}
-			rCrtVs := map[string][]RestRequest{
-				"ltm/virtual":         rCrts["ltm/virtual"],
-				"ltm/virtual-address": rCrts["ltm/virtual-address"],
-			}
-			cvl, dvl, uvl := sweepCmds(rDelVs, rCrtVs, existings)
-			if len(cvl)+len(dvl)+len(uvl) != 0 {
-				delete(rDels, "ltm/virtual")
-				delete(rDels, "ltm/virtual-address")
-				delete(rCrts, "ltm/virtual")
-				delete(rCrts, "ltm/virtual-address")
-				vcmdDels = sortRestRequests(append(rDels["ltm/virtual"], rDels["ltm/virtual-address"]...), true)
-				vcmdCrts = sortRestRequests(append(rCrts["ltm/virtual"], rCrts["ltm/virtual-address"]...), false)
-				for i := range vcmdCrts {
-					vcmdCrts[i].Method = "POST"
-				}
+			vcmdCrts = sortCmds(append(rCrts["ltm/virtual"], rCrts["ltm/virtual-address"]...), false)
+			for i := range vcmdCrts {
+				vcmdCrts[i].Method = "POST"
 			}
 		}
-
-		cl, dl, ul := sweepCmds(rDels, rCrts, existings)
-
-		cmds = append(cmds, cf...)
-		cmds = append(cmds, cl...)
-		cmds = append(cmds, ul...)
-		cmds = append(cmds, dl...)
-		cmds = append(cmds, vcmdDels...)
-		cmds = append(cmds, vcmdCrts...)
-		cmds = append(cmds, df...)
-
-		// if there is virtual-address change...
-
-		return cmds
 	}
 
-	cmds := laycmds()
+	cl, dl, ul := sweepCmds(rDels, rCrts, existings)
+	cmds := layoutCmds(cl, dl, ul)
+	cmds = append(cmds, vcmdDels...)
+	cmds = append(cmds, vcmdCrts...)
+
+	// if there is virtual-address change...
 
 	if bcmds, err := json.Marshal(cmds); err == nil {
 		slog.Debugf("commands: %s", bcmds)
@@ -257,16 +240,18 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 	return &cmds, nil
 }
 
-func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]interface{}, exists *map[string]map[string]interface{}) ([]RestRequest, map[string][]RestRequest, error) {
+func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]interface{}, exists *map[string]map[string]interface{}) (map[string][]RestRequest, error) {
 	slog.Debugf("generating '%s' cmds for partition %s's config", operation, partition)
 	rrs := map[string][]RestRequest{}
 
-	rFldrs := []RestRequest{}
 	for fn, ress := range cfg {
 		if fn != "" {
 			rSubfolder := bip.constructFolder(fn, partition)
 			rSubfolder.Method = opr2method(operation, nil != getFromExists("sys/folder", partition, "", fn, exists))
-			rFldrs = append(rFldrs, rSubfolder)
+			if _, f := rrs["sys/folder"]; !f {
+				rrs["sys/folder"] = []RestRequest{}
+			}
+			rrs["sys/folder"] = append(rrs["sys/folder"], rSubfolder)
 		}
 
 		for tn, body := range ress.(map[string]interface{}) {
@@ -289,10 +274,10 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 			case "shared":
 				r, err = bip.constructSharedRes(t, n, partition, fn, body, operation)
 			default:
-				return rFldrs, rrs, fmt.Errorf("not support root kind: %s", rootKind)
+				return rrs, fmt.Errorf("not support root kind: %s", rootKind)
 			}
 			if err != nil {
-				return rFldrs, rrs, err
+				return rrs, err
 			} else {
 				if _, f := rrs[t]; !f {
 					rrs[t] = []RestRequest{}
@@ -305,7 +290,7 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 			}
 		}
 	}
-	return rFldrs, rrs, nil
+	return rrs, nil
 }
 
 func (bip *BIGIP) DeployPartition(name string) error {
