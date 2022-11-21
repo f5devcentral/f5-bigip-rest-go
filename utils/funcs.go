@@ -19,15 +19,25 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func Initialize(logLevel string) {
-	selflog = SetupLog("", logLevel)
-	FunctionDurationTimeCost = prometheus.NewGaugeVec(
+func init() {
+	FunctionDurationTimeCostTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "function_duration_timecost",
-			Help: "time cost(in milliseconds) of functions",
+			Name: "function_duration_timecost_total",
+			Help: "time cost total(in milliseconds) of functions",
 		},
 		[]string{"name"},
 	)
+	FunctionDurationTimeCostCount = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "function_duration_timecost_count",
+			Help: "time cost count of functions",
+		},
+		[]string{"name"},
+	)
+}
+
+func Initialize(logLevel string) {
+	selflog = SetupLog("", logLevel)
 }
 
 func TimeIt(slog *SLOG) func(format string, a ...interface{}) int64 {
@@ -47,7 +57,8 @@ func TimeItToPrometheus() func() {
 
 	return func() {
 		tc := time.Since(start)
-		FunctionDurationTimeCost.WithLabelValues(f.Name()).Set(float64(tc.Milliseconds()))
+		FunctionDurationTimeCostTotal.WithLabelValues(f.Name()).Add(float64(tc.Milliseconds()))
+		FunctionDurationTimeCostCount.WithLabelValues(f.Name()).Inc()
 	}
 }
 
