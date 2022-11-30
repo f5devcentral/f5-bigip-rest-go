@@ -531,3 +531,69 @@ func (bip *BIGIP) ModifyDbValue(name, value string) error {
 	}
 	return nil
 }
+
+func (bip *BIGIP) CreateVxlanProfile(name, port string) error {
+	var err error
+	resp, err := bip.Exist("net/tunnels/vxlan", name, "Common", "")
+	if err != nil {
+		return err
+	}
+	body := map[string]interface{}{
+		"name":         name,
+		"floodingType": "none",
+		"port":         port,
+	}
+	if resp == nil {
+		slog.Debugf("Create vxlan profile %s here.", name)
+		err = bip.Deploy("net/tunnels/vxlan", name, "Common", "", body)
+	} else {
+		slog.Debugf("vxlan profile %s already exists.", name)
+		// err = bip.Update("net/tunnels/vxlan", name, "Common", "", body)
+		return nil
+	}
+	return err
+}
+
+func (bip *BIGIP) CreateVxlanTunnel(name, key, address, profile string) error {
+	var err error
+	resp, err := bip.Exist("net/tunnels/tunnel", name, "Common", "")
+	if err != nil {
+		return err
+	}
+	body := map[string]interface{}{
+		"name":         name,
+		"key":          key,
+		"localAddress": address,
+		"profile":      profile,
+	}
+	if resp == nil {
+		slog.Debugf("Create vxlan tunnel %s here.", name)
+		err = bip.Deploy("net/tunnels/tunnel", name, "Common", "", body)
+	} else {
+		slog.Debugf("Update vxlan tunnel %s here.", name)
+		err = bip.Update("net/tunnels/tunnel", name, "Common", "", body)
+	}
+	return err
+}
+
+func (bip *BIGIP) CreateSelf(name, address, vlan string) error {
+	var err error
+	resp, err := bip.Exist("net/self", name, "Common", "")
+	if err != nil {
+		return err
+	}
+	body := map[string]interface{}{
+		"name":         name,
+		"address":      address,
+		"vlan":         vlan,
+		"allowService": "all",
+	}
+	if resp == nil {
+		slog.Debugf("Create selfip %s here.", name)
+		err = bip.Deploy("net/self", name, "Common", "", body)
+	} else {
+		slog.Debugf("Update selfip %s here.", name)
+		err = bip.Update("net/self", name, "Common", "", body)
+	}
+	return err
+}
