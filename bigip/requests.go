@@ -511,3 +511,23 @@ func (bip *BIGIP) SaveSysConfig(partitions []string) error {
 	}
 	return nil
 }
+
+func (bip *BIGIP) ModifyDbValue(name, value string) error {
+	// modify sys db tmrouted.tmos.routing value enable
+	cmd := "modify sys db "
+	cmd += name
+	cmd += " value "
+	cmd += value
+	slog.Debugf("cmd is: %s", cmd)
+
+	resp, err := bip.Tmsh(cmd)
+
+	if err != nil {
+		return err
+	}
+
+	if (*resp)["commandResult"] != nil {
+		slog.Warnf("command %s: %v", cmd, (*resp)["commandResult"])
+	}
+	return nil
+}

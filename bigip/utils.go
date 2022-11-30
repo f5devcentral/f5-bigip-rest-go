@@ -32,6 +32,7 @@ func init() {
 		`net/arp$`,
 		`net/fdb$`,
 		`net/ndp$`,
+		`net/routing/bgp$`,
 	}
 	BIGIPiControlTimeCostTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
