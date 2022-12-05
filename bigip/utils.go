@@ -31,7 +31,7 @@ func init() {
 		`ltm/virtual-address`,
 		`ltm/virtual$`,
 		`net/arp$`,
-		`net/fdb$`,
+		`net/fdb/tunnel$`,
 		`net/ndp$`,
 		`net/routing/bgp$`,
 	}
