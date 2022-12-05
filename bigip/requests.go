@@ -516,7 +516,8 @@ func (bc *BIGIPContext) SaveSysConfig(partitions []string) error {
 	return nil
 }
 
-func (bip *BIGIP) ModifyDbValue(name, value string) error {
+func (bc *BIGIPContext) ModifyDbValue(name, value string) error {
+	slog := utils.LogFromContext(bc)
 	// modify sys db tmrouted.tmos.routing value enable
 	cmd := "modify sys db "
 	cmd += name
@@ -524,7 +525,7 @@ func (bip *BIGIP) ModifyDbValue(name, value string) error {
 	cmd += value
 	slog.Debugf("cmd is: %s", cmd)
 
-	resp, err := bip.Tmsh(cmd)
+	resp, err := bc.Tmsh(cmd)
 
 	if err != nil {
 		return err
@@ -536,9 +537,10 @@ func (bip *BIGIP) ModifyDbValue(name, value string) error {
 	return nil
 }
 
-func (bip *BIGIP) CreateVxlanProfile(name, port string) error {
+func (bc *BIGIPContext) CreateVxlanProfile(name, port string) error {
+	slog := utils.LogFromContext(bc)
 	var err error
-	resp, err := bip.Exist("net/tunnels/vxlan", name, "Common", "")
+	resp, err := bc.Exist("net/tunnels/vxlan", name, "Common", "")
 	if err != nil {
 		return err
 	}
@@ -549,7 +551,7 @@ func (bip *BIGIP) CreateVxlanProfile(name, port string) error {
 	}
 	if resp == nil {
 		slog.Debugf("Create vxlan profile %s here.", name)
-		err = bip.Deploy("net/tunnels/vxlan", name, "Common", "", body)
+		err = bc.Deploy("net/tunnels/vxlan", name, "Common", "", body)
 	} else {
 		slog.Debugf("vxlan profile %s already exists.", name)
 		// err = bip.Update("net/tunnels/vxlan", name, "Common", "", body)
@@ -558,9 +560,10 @@ func (bip *BIGIP) CreateVxlanProfile(name, port string) error {
 	return err
 }
 
-func (bip *BIGIP) CreateVxlanTunnel(name, key, address, profile string) error {
+func (bc *BIGIPContext) CreateVxlanTunnel(name, key, address, profile string) error {
+	slog := utils.LogFromContext(bc)
 	var err error
-	resp, err := bip.Exist("net/tunnels/tunnel", name, "Common", "")
+	resp, err := bc.Exist("net/tunnels/tunnel", name, "Common", "")
 	if err != nil {
 		return err
 	}
@@ -572,17 +575,18 @@ func (bip *BIGIP) CreateVxlanTunnel(name, key, address, profile string) error {
 	}
 	if resp == nil {
 		slog.Debugf("Create vxlan tunnel %s here.", name)
-		err = bip.Deploy("net/tunnels/tunnel", name, "Common", "", body)
+		err = bc.Deploy("net/tunnels/tunnel", name, "Common", "", body)
 	} else {
 		slog.Debugf("Update vxlan tunnel %s here.", name)
-		err = bip.Update("net/tunnels/tunnel", name, "Common", "", body)
+		err = bc.Update("net/tunnels/tunnel", name, "Common", "", body)
 	}
 	return err
 }
 
-func (bip *BIGIP) CreateSelf(name, address, vlan string) error {
+func (bc *BIGIPContext) CreateSelf(name, address, vlan string) error {
+	slog := utils.LogFromContext(bc)
 	var err error
-	resp, err := bip.Exist("net/self", name, "Common", "")
+	resp, err := bc.Exist("net/self", name, "Common", "")
 	if err != nil {
 		return err
 	}
@@ -594,10 +598,10 @@ func (bip *BIGIP) CreateSelf(name, address, vlan string) error {
 	}
 	if resp == nil {
 		slog.Debugf("Create selfip %s here.", name)
-		err = bip.Deploy("net/self", name, "Common", "", body)
+		err = bc.Deploy("net/self", name, "Common", "", body)
 	} else {
 		slog.Debugf("Update selfip %s here.", name)
-		err = bip.Update("net/self", name, "Common", "", body)
+		err = bc.Update("net/self", name, "Common", "", body)
 	}
 	return err
 }
