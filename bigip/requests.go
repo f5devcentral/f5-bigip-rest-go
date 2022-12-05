@@ -9,19 +9,19 @@ import (
 	"gitee.com/zongzw/f5-bigip-rest/utils"
 )
 
-func (bip *BIGIP) DoRestRequests(rr *[]RestRequest) error {
-	if transId, err := bip.MakeTrans(); err != nil {
+func (bc *BIGIPContext) DoRestRequests(rr *[]RestRequest) error {
+	if transId, err := bc.MakeTrans(); err != nil {
 		return err
 	} else {
-		if count, err := bip.DeployWithTrans(rr, transId); err != nil || count == 0 {
+		if count, err := bc.DeployWithTrans(rr, transId); err != nil || count == 0 {
 			return err
 		} else {
-			return bip.CommitTrans(transId)
+			return bc.CommitTrans(transId)
 		}
 	}
 }
 
-func (bip *BIGIP) constructFolder(name, partition string) RestRequest {
+func (bc *BIGIPContext) constructFolder(name, partition string) RestRequest {
 	kind := "sys/folder"
 	return RestRequest{
 		Method: "NOPE",
@@ -38,7 +38,7 @@ func (bip *BIGIP) constructFolder(name, partition string) RestRequest {
 	}
 }
 
-func (bip *BIGIP) constructLTMRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
+func (bc *BIGIPContext) constructLTMRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
 	return RestRequest{
 		Method:    "NOPE",
 		Headers:   map[string]interface{}{},
@@ -52,7 +52,7 @@ func (bip *BIGIP) constructLTMRes(kind, name, partition, subfolder string, body 
 	}
 }
 
-func (bip *BIGIP) constructNetRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
+func (bc *BIGIPContext) constructNetRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
 	return RestRequest{
 		Method:    "NOPE",
 		Headers:   map[string]interface{}{},
@@ -66,7 +66,7 @@ func (bip *BIGIP) constructNetRes(kind, name, partition, subfolder string, body 
 	}
 }
 
-func (bip *BIGIP) constructSysRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
+func (bc *BIGIPContext) constructSysRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
 	return RestRequest{
 		Method:    "NOPE",
 		Body:      body,
@@ -80,7 +80,7 @@ func (bip *BIGIP) constructSysRes(kind, name, partition, subfolder string, body 
 	}
 }
 
-func (bip *BIGIP) constructSharedRes(kind, name, partition, subfolder string, body interface{}, operation string) (RestRequest, error) {
+func (bc *BIGIPContext) constructSharedRes(kind, name, partition, subfolder string, body interface{}, operation string) (RestRequest, error) {
 	r := RestRequest{}
 
 	switch kind {
@@ -129,11 +129,11 @@ func (bip *BIGIP) constructSharedRes(kind, name, partition, subfolder string, bo
 	return r, nil
 }
 
-func (bip *BIGIP) GetExistingResources(partition string, kinds []string) (*map[string]map[string]interface{}, error) {
+func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (*map[string]map[string]interface{}, error) {
 	defer utils.TimeItToPrometheus()()
 
 	exists := map[string]map[string]interface{}{}
-	partitions, err := bip.ListPartitions()
+	partitions, err := bc.ListPartitions()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list partitions for checking res existence: %s", err.Error())
 	}
@@ -146,7 +146,7 @@ func (bip *BIGIP) GetExistingResources(partition string, kinds []string) (*map[s
 			continue
 		}
 		exists[kind] = map[string]interface{}{}
-		resp, err := bip.All(fmt.Sprintf("%s?$filter=partition+eq+%s", kind, partition))
+		resp, err := bc.All(fmt.Sprintf("%s?$filter=partition+eq+%s", kind, partition))
 		if err != nil {
 			return nil, fmt.Errorf("failed to list '%s' of %s: %s", kind, partition, err.Error())
 		}
@@ -167,26 +167,27 @@ func (bip *BIGIP) GetExistingResources(partition string, kinds []string) (*map[s
 	return &exists, nil
 }
 
-func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}) (*[]RestRequest, error) {
+func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}) (*[]RestRequest, error) {
 	defer utils.TimeItToPrometheus()()
+	slog := utils.LogFromContext(bc)
 
 	rDels := map[string][]RestRequest{}
 	rCrts := map[string][]RestRequest{}
 
 	kinds := GatherKinds(ocfg, ncfg)
-	existings, err := bip.GetExistingResources(partition, kinds)
+	existings, err := bc.GetExistingResources(partition, kinds)
 	if err != nil {
 		return nil, err
 	}
 	if ocfg != nil {
 		var err error
-		if rDels, err = bip.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {
+		if rDels, err = bc.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {
 			return &[]RestRequest{}, err
 		}
 	}
 	if ncfg != nil {
 		var err error
-		if rCrts, err = bip.cfg2RestRequests(partition, "deploy", *ncfg, existings); err != nil {
+		if rCrts, err = bc.cfg2RestRequests(partition, "deploy", *ncfg, existings); err != nil {
 			return &[]RestRequest{}, err
 		}
 	}
@@ -240,13 +241,14 @@ func (bip *BIGIP) GenRestRequests(partition string, ocfg, ncfg *map[string]inter
 	return &cmds, nil
 }
 
-func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]interface{}, exists *map[string]map[string]interface{}) (map[string][]RestRequest, error) {
+func (bc *BIGIPContext) cfg2RestRequests(partition, operation string, cfg map[string]interface{}, exists *map[string]map[string]interface{}) (map[string][]RestRequest, error) {
+	slog := utils.LogFromContext(bc)
 	slog.Debugf("generating '%s' cmds for partition %s's config", operation, partition)
 	rrs := map[string][]RestRequest{}
 
 	for fn, ress := range cfg {
 		if fn != "" {
-			rSubfolder := bip.constructFolder(fn, partition)
+			rSubfolder := bc.constructFolder(fn, partition)
 			rSubfolder.Method = opr2method(operation, nil != getFromExists("sys/folder", partition, "", fn, exists))
 			if _, f := rrs["sys/folder"]; !f {
 				rrs["sys/folder"] = []RestRequest{}
@@ -263,16 +265,16 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 			var err error = nil
 			switch rootKind {
 			case "ltm":
-				r = bip.constructLTMRes(t, n, partition, fn, body)
+				r = bc.constructLTMRes(t, n, partition, fn, body)
 				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "net":
-				r = bip.constructNetRes(t, n, partition, fn, body)
+				r = bc.constructNetRes(t, n, partition, fn, body)
 				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "sys":
-				r = bip.constructSysRes(t, n, partition, fn, body)
+				r = bc.constructSysRes(t, n, partition, fn, body)
 				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "shared":
-				r, err = bip.constructSharedRes(t, n, partition, fn, body, operation)
+				r, err = bc.constructSharedRes(t, n, partition, fn, body, operation)
 			default:
 				return rrs, fmt.Errorf("not support root kind: %s", rootKind)
 			}
@@ -293,36 +295,36 @@ func (bip *BIGIP) cfg2RestRequests(partition, operation string, cfg map[string]i
 	return rrs, nil
 }
 
-func (bip *BIGIP) DeployPartition(name string) error {
+func (bc *BIGIPContext) DeployPartition(name string) error {
 	if name == "Common" {
 		return nil
 	}
-	pobj, err := bip.Exist("sys/folder", "", name, "")
+	pobj, err := bc.Exist("sys/folder", "", name, "")
 	if err != nil {
 		return err
 	}
 
 	if pobj == nil {
-		return bip.Deploy("sys/folder", name, "/", "", map[string]interface{}{})
+		return bc.Deploy("sys/folder", name, "/", "", map[string]interface{}{})
 	}
 	return nil
 }
 
-func (bip *BIGIP) DeletePartition(name string) error {
+func (bc *BIGIPContext) DeletePartition(name string) error {
 	if name == "Common" {
 		return nil
 	}
-	if f, err := bip.Exist("sys/folder", "", name, ""); err != nil {
+	if f, err := bc.Exist("sys/folder", "", name, ""); err != nil {
 		return err
 	} else if f == nil {
 		return nil
 	}
-	return bip.Delete("sys/folder", name, "", "")
+	return bc.Delete("sys/folder", name, "", "")
 }
 
-func (bip *BIGIP) LoadDataGroup(dgkey string) (*PersistedConfig, error) {
+func (bc *BIGIPContext) LoadDataGroup(dgkey string) (*PersistedConfig, error) {
 	dgname := "f5-kic_" + dgkey
-	resp, err := bip.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+	resp, err := bc.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
 	if err != nil {
 		return nil, err
 	}
@@ -384,14 +386,14 @@ func (bip *BIGIP) LoadDataGroup(dgkey string) (*PersistedConfig, error) {
 	}
 }
 
-func (bip *BIGIP) SaveDataGroup(dgkey string, pc *PersistedConfig) error {
+func (bc *BIGIPContext) SaveDataGroup(dgkey string, pc *PersistedConfig) error {
 	dgname := "f5-kic_" + dgkey
 	var err error
 	// failed with error:  16908375, 01020057:3: The string with more than 65535 characters cannot be stored in a message.
 	blocksize := 1024
 	records := []interface{}{}
 
-	resp, err := bip.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+	resp, err := bc.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
 	if err != nil {
 		return err
 	}
@@ -448,29 +450,29 @@ func (bip *BIGIP) SaveDataGroup(dgkey string, pc *PersistedConfig) error {
 	}
 
 	if resp == nil {
-		err = bip.Deploy("ltm/data-group/internal", dgname, "cis-c-tenant", "", body)
+		err = bc.Deploy("ltm/data-group/internal", dgname, "cis-c-tenant", "", body)
 	} else {
-		err = bip.Update("ltm/data-group/internal", dgname, "cis-c-tenant", "", body)
+		err = bc.Update("ltm/data-group/internal", dgname, "cis-c-tenant", "", body)
 	}
 	return err
 }
 
-func (bip *BIGIP) DeleteDataGroup(dgkey string) error {
+func (bc *BIGIPContext) DeleteDataGroup(dgkey string) error {
 	dgname := "f5-kic_" + dgkey
 	var err error
-	resp, err := bip.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+	resp, err := bc.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
 	if err != nil {
 		return err
 	}
 	if resp != nil {
-		err = bip.Delete("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+		err = bc.Delete("ltm/data-group/internal", dgname, "cis-c-tenant", "")
 	}
 	return err
 }
 
-func (bip *BIGIP) ListPartitions() ([]string, error) {
+func (bc *BIGIPContext) ListPartitions() ([]string, error) {
 	partitions := []string{}
-	resp, err := bip.All("sys/folder")
+	resp, err := bc.All("sys/folder")
 	if err != nil {
 		return partitions, fmt.Errorf("failed to list partitions: %s", err.Error())
 	}
@@ -491,7 +493,9 @@ func (bip *BIGIP) ListPartitions() ([]string, error) {
 	return utils.Unified(partitions), nil
 }
 
-func (bip *BIGIP) SaveSysConfig(partitions []string) error {
+func (bc *BIGIPContext) SaveSysConfig(partitions []string) error {
+	slog := utils.LogFromContext(bc)
+
 	cmd := "save sys config"
 	if len(partitions) > 0 {
 		cmd += "partitions { "
@@ -502,7 +506,7 @@ func (bip *BIGIP) SaveSysConfig(partitions []string) error {
 		cmd += "}"
 	}
 
-	resp, err := bip.Tmsh(cmd)
+	resp, err := bc.Tmsh(cmd)
 	if err != nil {
 		return err
 	}
