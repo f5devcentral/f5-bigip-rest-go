@@ -1,6 +1,9 @@
 package f5_bigip
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 type RestRequest struct {
 	ResName   string
@@ -23,6 +26,10 @@ type BIGIP struct {
 	client        *http.Client
 }
 
+type BIGIPContext struct {
+	BIGIP
+	context.Context
+}
 type BIGIPVersion struct {
 	Build   string
 	Date    string

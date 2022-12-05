@@ -7,16 +7,7 @@ import (
 	"strings"
 )
 
-type SLOG struct {
-	requestID   string
-	infoLogger  *log.Logger
-	debugLogger *log.Logger
-	warnLogger  *log.Logger
-	errorLogger *log.Logger
-	traceLogger *log.Logger
-}
-
-func SetupLog(reqid, level string) SLOG {
+func NewLog(reqid, level string) *SLOG {
 	flags := log.Ldate | log.Ltime | log.Lmicroseconds | log.Lmsgprefix
 	levels := []string{"error", "warn", "info", "debug", "trace"}
 	if !Contains(levels, strings.ToLower(level)) {
@@ -50,7 +41,7 @@ func SetupLog(reqid, level string) SLOG {
 			break
 		}
 	}
-	return slog
+	return &slog
 }
 
 func (slog *SLOG) Infof(format string, v ...interface{}) {

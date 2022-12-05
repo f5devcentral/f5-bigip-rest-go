@@ -9,18 +9,18 @@ import (
 	utils "gitee.com/zongzw/f5-bigip-rest/utils"
 )
 
-func (bip *BIGIP) Exist(kind, name, partition, subfolder string) (*map[string]interface{}, error) {
-	url := bip.URL + fmt.Sprintf("/mgmt/tm/%s", uriname(kind, refname(partition, subfolder, name)))
+func (bc *BIGIPContext) Exist(kind, name, partition, subfolder string) (*map[string]interface{}, error) {
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s", uriname(kind, refname(partition, subfolder, name)))
 	method := "GET"
 	payload := ""
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	var bipresp map[string]interface{}
 	// logRequest(method, url, headers, payload)
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -40,12 +40,12 @@ func (bip *BIGIP) Exist(kind, name, partition, subfolder string) (*map[string]in
 	}
 }
 
-func (bip *BIGIP) Deploy(kind, name, partition, subfolder string, body map[string]interface{}) error {
-	url := bip.URL + fmt.Sprintf("/mgmt/tm/%s", kind)
+func (bc *BIGIPContext) Deploy(kind, name, partition, subfolder string, body map[string]interface{}) error {
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s", kind)
 	method := "POST"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	if partition != "" {
@@ -60,7 +60,7 @@ func (bip *BIGIP) Deploy(kind, name, partition, subfolder string, body map[strin
 		return err
 	}
 	payload := string(bbody)
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return err
 	}
@@ -68,12 +68,12 @@ func (bip *BIGIP) Deploy(kind, name, partition, subfolder string, body map[strin
 	return assertBigipResp20X(code, resp)
 }
 
-func (bip *BIGIP) Update(kind, name, partition, subfolder string, body map[string]interface{}) error {
-	url := bip.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, refname(partition, subfolder, name))
+func (bc *BIGIPContext) Update(kind, name, partition, subfolder string, body map[string]interface{}) error {
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, refname(partition, subfolder, name))
 	method := "PATCH"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	bbody, err := json.Marshal(body)
@@ -81,7 +81,7 @@ func (bip *BIGIP) Update(kind, name, partition, subfolder string, body map[strin
 		return err
 	}
 	payload := string(bbody)
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return err
 	}
@@ -89,37 +89,37 @@ func (bip *BIGIP) Update(kind, name, partition, subfolder string, body map[strin
 	return assertBigipResp20X(code, resp)
 }
 
-func (bip *BIGIP) Delete(kind, name, partition, subfolder string) error {
-	url := bip.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, refname(partition, subfolder, name))
+func (bc *BIGIPContext) Delete(kind, name, partition, subfolder string) error {
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, refname(partition, subfolder, name))
 	method := "DELETE"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	payload := ""
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return err
 	}
 	return assertBigipResp20X(code, resp)
 }
 
-func (bip *BIGIP) Upload(name, content string) (string, error) {
-	url := bip.URL + fmt.Sprintf("/mgmt/shared/file-transfer/uploads/%s", name)
+func (bc *BIGIPContext) Upload(name, content string) (string, error) {
+	url := bc.URL + fmt.Sprintf("/mgmt/shared/file-transfer/uploads/%s", name)
 	method := "POST"
 	payload := content
 	length := len(payload)
 	headers := map[string]string{
 		"Content-Type":   "application/octet-stream",
-		"Authorization":  bip.Authorization,
+		"Authorization":  bc.Authorization,
 		"Content-Length": fmt.Sprint(length),
 		"Content-Range":  fmt.Sprintf("0-%d/%d", length-1, length),
 	}
 
 	var bipresp map[string]interface{}
 	// logRequest(method, url, headers, payload)
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return "", err
 	}
@@ -141,17 +141,17 @@ func (bip *BIGIP) Upload(name, content string) (string, error) {
 	}
 }
 
-func (bip *BIGIP) All(kind string) (*map[string]interface{}, error) {
-	url := bip.URL + fmt.Sprintf("/mgmt/tm/%s", kind)
+func (bc *BIGIPContext) All(kind string) (*map[string]interface{}, error) {
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s", kind)
 	method := "GET"
 	payload := ""
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	var bipresp map[string]interface{}
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -169,16 +169,17 @@ func (bip *BIGIP) All(kind string) (*map[string]interface{}, error) {
 	}
 }
 
-func (bip *BIGIP) Tmsh(cmd string) (*map[string]interface{}, error) {
+func (bc *BIGIPContext) Tmsh(cmd string) (*map[string]interface{}, error) {
 	defer utils.TimeItToPrometheus()()
+	slog := utils.LogFromContext(bc)
 	if cmd == "" {
 		return &map[string]interface{}{}, nil
 	}
-	url := bip.URL + "/mgmt/tm/util/bash"
+	url := bc.URL + "/mgmt/tm/util/bash"
 	method := "POST"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	body := map[string]string{
@@ -187,8 +188,8 @@ func (bip *BIGIP) Tmsh(cmd string) (*map[string]interface{}, error) {
 	}
 	bbody, _ := json.Marshal(body)
 	payload := string(bbody)
-	defer utils.TimeItTrace(&slog)("tmsh: %s %s %s", method, url, payload)
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	defer utils.TimeItTrace(slog)("tmsh: %s %s %s", method, url, payload)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -201,9 +202,9 @@ func (bip *BIGIP) Tmsh(cmd string) (*map[string]interface{}, error) {
 	return &jresp, assertBigipResp20X(code, resp)
 }
 
-func (bip *BIGIP) Members(poolname string, partition string, subfolder string) ([]string, error) {
+func (bc *BIGIPContext) Members(poolname string, partition string, subfolder string) ([]string, error) {
 	mbls := []string{}
-	mbsp, err := bip.Exist("ltm/pool", poolname+"/members", partition, subfolder)
+	mbsp, err := bc.Exist("ltm/pool", poolname+"/members", partition, subfolder)
 	if err != nil || mbsp == nil {
 		return mbls, err
 	}
@@ -216,9 +217,9 @@ func (bip *BIGIP) Members(poolname string, partition string, subfolder string) (
 	return mbls, nil
 }
 
-func (bip *BIGIP) Arps() (*map[string]string, error) {
+func (bc *BIGIPContext) Arps() (*map[string]string, error) {
 	defer utils.TimeItToPrometheus()()
-	arpsp, err := bip.All("net/arp")
+	arpsp, err := bc.All("net/arp")
 	if err != nil {
 		return nil, err
 	}
@@ -233,9 +234,9 @@ func (bip *BIGIP) Arps() (*map[string]string, error) {
 	return &arps, nil
 }
 
-func (bip *BIGIP) Ndps() (*map[string]string, error) {
+func (bc *BIGIPContext) Ndps() (*map[string]string, error) {
 	defer utils.TimeItToPrometheus()()
-	arpsp, err := bip.All("net/ndp")
+	arpsp, err := bc.All("net/ndp")
 	if err != nil {
 		return nil, err
 	}
@@ -250,11 +251,11 @@ func (bip *BIGIP) Ndps() (*map[string]string, error) {
 	return &ndps, nil
 }
 
-func (bip *BIGIP) Fdbs(tunnelName string) (*map[string]string, error) {
+func (bc *BIGIPContext) Fdbs(tunnelName string) (*map[string]string, error) {
 	defer utils.TimeItToPrometheus()()
 
 	tun := strings.ReplaceAll(tunnelName, "/", "~")
-	fdbsp, err := bip.All(fmt.Sprintf("net/fdb/tunnel/%s/records", tun))
+	fdbsp, err := bc.All(fmt.Sprintf("net/fdb/tunnel/%s/records", tun))
 	if err != nil {
 		return nil, err
 	}
@@ -269,18 +270,18 @@ func (bip *BIGIP) Fdbs(tunnelName string) (*map[string]string, error) {
 	return &fdbs, nil
 }
 
-func (bip *BIGIP) MakeTrans() (float64, error) {
-	url := bip.URL + "/mgmt/tm/transaction"
+func (bc *BIGIPContext) MakeTrans() (float64, error) {
+	url := bc.URL + "/mgmt/tm/transaction"
 	method := "POST"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	body := map[string]interface{}{}
 	bbody, _ := json.Marshal(body)
 	payload := string(bbody)
-	code, resp, err := httpRequest(bip.client, url, method, payload, headers)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, headers)
 	if err != nil {
 		return 0, err
 	}
@@ -301,12 +302,12 @@ func (bip *BIGIP) MakeTrans() (float64, error) {
 	}
 }
 
-func (bip *BIGIP) DeployWithTrans(rr *[]RestRequest, transId float64) (int, error) {
+func (bc *BIGIPContext) DeployWithTrans(rr *[]RestRequest, transId float64) (int, error) {
 	defer utils.TimeItToPrometheus()()
 
 	headersTmpl := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": bip.Authorization,
+		"Authorization": bc.Authorization,
 	}
 
 	count := 0
@@ -347,11 +348,11 @@ func (bip *BIGIP) DeployWithTrans(rr *[]RestRequest, transId float64) (int, erro
 		var url string
 		switch method {
 		case "POST":
-			url = bip.URL + r.ResUri
+			url = bc.URL + r.ResUri
 		case "PATCH":
-			url = bip.URL + r.ResUri + "/" + refname(r.Partition, r.Subfolder, r.ResName)
+			url = bc.URL + r.ResUri + "/" + refname(r.Partition, r.Subfolder, r.ResName)
 		case "DELETE":
-			url = bip.URL + r.ResUri + "/" + refname(r.Partition, r.Subfolder, r.ResName)
+			url = bc.URL + r.ResUri + "/" + refname(r.Partition, r.Subfolder, r.ResName)
 			bbody = []byte{}
 		default:
 			return 0, fmt.Errorf("not support method: %s", method)
@@ -370,8 +371,8 @@ func (bip *BIGIP) DeployWithTrans(rr *[]RestRequest, transId float64) (int, erro
 		}
 
 		// run..
-		logRequest(method, url, headers, string(bbody))
-		code, resp, err := httpRequest(bip.client, url, method, string(bbody), headers)
+		logRequest(bc, method, url, headers, string(bbody))
+		code, resp, err := httpRequest(bc, bc.client, url, method, string(bbody), headers)
 		if err != nil {
 			return 0, err
 		}
@@ -385,19 +386,20 @@ func (bip *BIGIP) DeployWithTrans(rr *[]RestRequest, transId float64) (int, erro
 	return count, nil
 }
 
-func (bip *BIGIP) CommitTrans(transId float64) error {
+func (bc *BIGIPContext) CommitTrans(transId float64) error {
 	defer utils.TimeItToPrometheus()()
 	payload, _ := json.Marshal(map[string]interface{}{
 		"state": "VALIDATING",
 	})
 	code, resp, err := httpRequest(
-		bip.client,
-		bip.URL+"/mgmt/tm/transaction/"+fmt.Sprintf("%.f", transId),
+		bc,
+		bc.client,
+		bc.URL+"/mgmt/tm/transaction/"+fmt.Sprintf("%.f", transId),
 		"PATCH",
 		string(payload),
 		map[string]string{
 			"Content-Type":  "application/json",
-			"Authorization": bip.Authorization,
+			"Authorization": bc.Authorization,
 		},
 	)
 	if err != nil {

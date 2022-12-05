@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -34,11 +35,13 @@ func init() {
 		},
 		[]string{"name"},
 	)
+
+	selflog = NewLog("", "debug")
 }
 
-func Initialize(logLevel string) {
-	selflog = SetupLog("", logLevel)
-}
+// func Initialize(logLevel string) {
+// 	selflog = SetupLog("", logLevel)
+// }
 
 func TimeIt(slog *SLOG) func(format string, a ...interface{}) int64 {
 	return TimeItWithLogFunc(slog.Debugf, 3)
@@ -368,5 +371,22 @@ func FieldsIsExpected(fields, expected interface{}) bool {
 		return true
 	} else {
 		return reflect.DeepEqual(fields, expected)
+	}
+}
+
+func LogFromContext(ctx context.Context) *SLOG {
+	slog, ok := ctx.Value(CtxKey_Logger).(*SLOG)
+	if !ok {
+		return selflog
+	}
+	return slog
+}
+
+func RequestIdFromContext(ctx context.Context) string {
+	reqid, ok := ctx.Value(CtxKey_RequestID).(string)
+	if !ok {
+		return ""
+	} else {
+		return reqid
 	}
 }

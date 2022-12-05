@@ -1,6 +1,7 @@
 package f5_bigip
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
@@ -52,15 +53,14 @@ func init() {
 }
 
 func Initialize(url, user, password, logLevel string) *BIGIP {
-	slog = utils.SetupLog("", logLevel)
 	return setupBIGIP(url, user, password)
 }
 
 func setupBIGIP(url, user, password string) *BIGIP {
-	bc := "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password))
-	bip := &BIGIP{
+	bauth := "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password))
+	bip := BIGIP{
 		URL:           url,
-		Authorization: bc,
+		Authorization: bauth,
 		client: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -71,7 +71,11 @@ func setupBIGIP(url, user, password string) *BIGIP {
 		},
 	}
 
-	sysinfo, err := bip.All("sys/version")
+	bc := &BIGIPContext{
+		bip,
+		context.TODO(),
+	}
+	sysinfo, err := bc.All("sys/version")
 	if err != nil {
 		panic(fmt.Errorf("BIGIP %s is unavailable: err %s, quit", bip.URL, err.Error()))
 	} else if sysinfo == nil {
@@ -83,10 +87,10 @@ func setupBIGIP(url, user, password string) *BIGIP {
 		}
 	}
 
-	if err := bip.DeployPartition("cis-c-tenant"); err != nil {
+	if err := bc.DeployPartition("cis-c-tenant"); err != nil {
 		panic(err)
 	}
-	return bip
+	return &bip
 }
 
 func assertBigipResp20X(statusCode int, resp []byte) error {
@@ -166,7 +170,9 @@ func bigipVersion(sysinfo map[string]interface{}) (string, error) {
 	return "", fmt.Errorf("entries not found")
 }
 
-func logRequest(method, url string, headers map[string]string, body string) {
+func logRequest(ctx context.Context, method, url string, headers map[string]string, body string) {
+	slog := utils.LogFromContext(ctx)
+
 	uris := strings.Split(url, "/mgmt")
 	if len(uris) >= 2 {
 		uri := strings.Join(uris[1:], "/mgmt")
@@ -260,8 +266,10 @@ func sortCmds(unsorted []RestRequest, reversed bool) []RestRequest {
 	return sorted
 }
 
-func httpRequest(client *http.Client, url, method, payload string, headers map[string]string) (int, []byte, error) {
-	tf := utils.TimeItTrace(&slog)
+func httpRequest(ctx context.Context, client *http.Client, url, method, payload string, headers map[string]string) (int, []byte, error) {
+	slog := utils.LogFromContext(ctx)
+
+	tf := utils.TimeItTrace(slog)
 	defer func() {
 		rec := url
 		tnarr := strings.Split(rec, "?")
