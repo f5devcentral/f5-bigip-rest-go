@@ -494,7 +494,7 @@ func (bc *BIGIPContext) ListPartitions() ([]string, error) {
 }
 
 func (bc *BIGIPContext) SaveSysConfig(partitions []string) error {
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 
 	cmd := "save sys config"
 	if len(partitions) > 0 {
@@ -517,7 +517,7 @@ func (bc *BIGIPContext) SaveSysConfig(partitions []string) error {
 }
 
 func (bc *BIGIPContext) ModifyDbValue(name, value string) error {
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 	// modify sys db tmrouted.tmos.routing value enable
 	cmd := "modify sys db "
 	cmd += name
@@ -538,7 +538,7 @@ func (bc *BIGIPContext) ModifyDbValue(name, value string) error {
 }
 
 func (bc *BIGIPContext) CreateVxlanProfile(name, port string) error {
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 	var err error
 	resp, err := bc.Exist("net/tunnels/vxlan", name, "Common", "")
 	if err != nil {
@@ -561,7 +561,7 @@ func (bc *BIGIPContext) CreateVxlanProfile(name, port string) error {
 }
 
 func (bc *BIGIPContext) CreateVxlanTunnel(name, key, address, profile string) error {
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 	var err error
 	resp, err := bc.Exist("net/tunnels/tunnel", name, "Common", "")
 	if err != nil {
@@ -584,7 +584,7 @@ func (bc *BIGIPContext) CreateVxlanTunnel(name, key, address, profile string) er
 }
 
 func (bc *BIGIPContext) CreateSelf(name, address, vlan string) error {
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 	var err error
 	resp, err := bc.Exist("net/self", name, "Common", "")
 	if err != nil {

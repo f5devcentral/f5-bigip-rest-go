@@ -171,7 +171,7 @@ func (bc *BIGIPContext) All(kind string) (*map[string]interface{}, error) {
 
 func (bc *BIGIPContext) Tmsh(cmd string) (*map[string]interface{}, error) {
 	defer utils.TimeItToPrometheus()()
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 	if cmd == "" {
 		return &map[string]interface{}{}, nil
 	}
