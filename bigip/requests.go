@@ -169,7 +169,7 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 
 func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}) (*[]RestRequest, error) {
 	defer utils.TimeItToPrometheus()()
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 
 	rDels := map[string][]RestRequest{}
 	rCrts := map[string][]RestRequest{}
@@ -242,7 +242,7 @@ func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string
 }
 
 func (bc *BIGIPContext) cfg2RestRequests(partition, operation string, cfg map[string]interface{}, exists *map[string]map[string]interface{}) (map[string][]RestRequest, error) {
-	slog := utils.LogFromContext(bc)
+	slog := utils.LogFromContext(bc.Context)
 	slog.Debugf("generating '%s' cmds for partition %s's config", operation, partition)
 	rrs := map[string][]RestRequest{}
 

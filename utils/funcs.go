@@ -375,6 +375,9 @@ func FieldsIsExpected(fields, expected interface{}) bool {
 }
 
 func LogFromContext(ctx context.Context) *SLOG {
+	if ctx == nil {
+		return selflog
+	}
 	slog, ok := ctx.Value(CtxKey_Logger).(*SLOG)
 	if !ok {
 		return selflog
@@ -383,6 +386,9 @@ func LogFromContext(ctx context.Context) *SLOG {
 }
 
 func RequestIdFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
 	reqid, ok := ctx.Value(CtxKey_RequestID).(string)
 	if !ok {
 		return ""
