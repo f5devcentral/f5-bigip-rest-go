@@ -560,8 +560,7 @@ func (bc *BIGIPContext) CreateVxlanProfile(name, port string) error {
 	return err
 }
 
-func (bc *BIGIPContext) CreateVxlanTunnel(name, key, address, profile string) error {
-	slog := utils.LogFromContext(bc.Context)
+func (bc *BIGIPContext) CreateTunnel(name, key, address, profile string) error {
 	var err error
 	resp, err := bc.Exist("net/tunnels/tunnel", name, "Common", "")
 	if err != nil {
@@ -574,10 +573,8 @@ func (bc *BIGIPContext) CreateVxlanTunnel(name, key, address, profile string) er
 		"profile":      profile,
 	}
 	if resp == nil {
-		slog.Debugf("Create vxlan tunnel %s here.", name)
 		err = bc.Deploy("net/tunnels/tunnel", name, "Common", "", body)
 	} else {
-		slog.Debugf("Update vxlan tunnel %s here.", name)
 		err = bc.Update("net/tunnels/tunnel", name, "Common", "", body)
 	}
 	return err
