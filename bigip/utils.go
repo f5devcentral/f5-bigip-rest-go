@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -146,11 +147,10 @@ func refname(partition, subfolder, name string) string {
 		}
 	}
 	rn := strings.Join(l, "~")
-	if rn == "" {
-		return rn
-	} else {
-		return "~" + rn
+	if rn != "" {
+		rn = "~" + rn
 	}
+	return url.QueryEscape(rn)
 }
 
 func bigipVersion(sysinfo map[string]interface{}) (string, error) {

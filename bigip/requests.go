@@ -217,11 +217,11 @@ func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string
 			delete(rDels, "ltm/virtual-address")
 			delete(rCrts, "ltm/virtual")
 			delete(rCrts, "ltm/virtual-address")
-			vcmdDels = sortCmds(append(rDels["ltm/virtual"], rDels["ltm/virtual-address"]...), true)
+			vcmdDels = sortCmds(append(rDelVs["ltm/virtual"], rDelVs["ltm/virtual-address"]...), true)
 			for i := range vcmdDels {
 				vcmdDels[i].Method = "DELETE"
 			}
-			vcmdCrts = sortCmds(append(rCrts["ltm/virtual"], rCrts["ltm/virtual-address"]...), false)
+			vcmdCrts = sortCmds(append(rCrtVs["ltm/virtual"], rCrtVs["ltm/virtual-address"]...), false)
 			for i := range vcmdCrts {
 				vcmdCrts[i].Method = "POST"
 			}
@@ -235,6 +235,7 @@ func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string
 
 	// if there is virtual-address change...
 
+	// TODO: handle [{"ResName":"120.0.0.0%!"(MISSING), issue.
 	if bcmds, err := json.Marshal(cmds); err == nil {
 		slog.Debugf("commands: %s", bcmds)
 	}
