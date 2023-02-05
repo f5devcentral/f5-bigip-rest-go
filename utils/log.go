@@ -7,84 +7,97 @@ import (
 	"strings"
 )
 
-func NewLog(reqid, level string) *SLOG {
-	flags := log.Ldate | log.Ltime | log.Lmicroseconds | log.Lmsgprefix
-	levels := []string{"error", "warn", "info", "debug", "trace"}
-	if !Contains(levels, strings.ToLower(level)) {
-		panic("invalid logging level: " + level)
-	}
+func NewLog() *SLOG {
 	slog := SLOG{
-		requestID: reqid,
+		requestID: "",
+		level:     LogLevel_INFO,
+		loggers:   map[int]*log.Logger{},
 	}
-	for _, l := range levels {
-		tobreak := false
-		if l == level {
-			tobreak = true
-		}
-		fmtReqId := ""
-		if reqid != "" {
-			fmtReqId = fmt.Sprintf("[%s] ", reqid)
-		}
-		switch l {
-		case "trace":
-			slog.traceLogger = log.New(os.Stdout, "[TRACE] "+fmtReqId, flags)
-		case "debug":
-			slog.debugLogger = log.New(os.Stdout, "[DEBUG] "+fmtReqId, flags)
-		case "info":
-			slog.infoLogger = log.New(os.Stdout, "[INFO]  "+fmtReqId, flags)
-		case "warn":
-			slog.warnLogger = log.New(os.Stdout, "[WARN]  "+fmtReqId, flags)
-		case "error":
-			slog.errorLogger = log.New(os.Stderr, "[ERROR] "+fmtReqId, flags)
-		}
-		if tobreak {
-			break
-		}
+	for n, l := range levels {
+		prefix := markLogPrefix(n, slog.requestID)
+		slog.loggers[l] = log.New(os.Stdout, prefix, flags)
 	}
 	return &slog
 }
 
+func (slog *SLOG) WithRequestID(reqid string) *SLOG {
+	slog.requestID = reqid
+	for n, logger := range slog.loggers {
+		prefix := markLogPrefix(itoaLevel(n), slog.requestID)
+		logger.SetPrefix(prefix)
+	}
+	return slog
+}
+
+func (slog *SLOG) WithLevel(level string) *SLOG {
+	slog.level = atoiLevel(level)
+	return slog
+}
+
 func (slog *SLOG) Infof(format string, v ...interface{}) {
-	if slog.infoLogger != nil {
+	if slog.level >= LogLevel_INFO {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
-			slog.infoLogger.Printf(m)
+			slog.loggers[LogLevel_INFO].Printf(m)
 		}
 	}
 }
 
 func (slog *SLOG) Debugf(format string, v ...interface{}) {
-	if slog.debugLogger != nil {
+	if slog.level >= LogLevel_DEBUG {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
-			slog.debugLogger.Printf(m)
+			slog.loggers[LogLevel_DEBUG].Printf(m)
 		}
 	}
 }
 
 func (slog *SLOG) Warnf(format string, v ...interface{}) {
-	if slog.warnLogger != nil {
+	if slog.level >= LogLevel_WARN {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
-			slog.warnLogger.Printf(m)
+			slog.loggers[LogLevel_WARN].Printf(m)
 		}
 	}
 }
 
 func (slog *SLOG) Errorf(format string, v ...interface{}) {
-	if slog.errorLogger != nil {
+	if slog.level >= LogLevel_ERROR {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
-			slog.errorLogger.Printf(m)
+			slog.loggers[LogLevel_ERROR].Printf(m)
 		}
 	}
 }
 
 func (slog *SLOG) Tracef(format string, v ...interface{}) {
-	if slog.traceLogger != nil {
+	if slog.level >= LogLevel_TRACE {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
-			slog.traceLogger.Printf(m)
+			slog.loggers[LogLevel_TRACE].Printf(m)
 		}
 	}
+}
+
+func atoiLevel(level string) int {
+	if l, ok := levels[level]; ok {
+		return l
+	} else {
+		return LogLevel_INFO
+	}
+}
+
+func itoaLevel(level int) string {
+	for k, v := range levels {
+		if level == v {
+			return k
+		}
+	}
+	return LogLevel_Type_INFO
+}
+
+func markLogPrefix(level, reqid string) string {
+	lp := fmt.Sprintf("%7s", "["+strings.ToUpper(level)+"]")
+	rp := fmt.Sprintf("[%s]", reqid)
+	return fmt.Sprintf("%s %s ", lp, rp)
 }

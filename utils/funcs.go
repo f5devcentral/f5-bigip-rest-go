@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"reflect"
@@ -36,12 +37,16 @@ func init() {
 		[]string{"name"},
 	)
 
-	selflog = NewLog("", "debug")
+	flags = log.Ldate | log.Ltime | log.Lmicroseconds | log.Lmsgprefix
+	levels = map[string]int{
+		LogLevel_Type_TRACE: LogLevel_TRACE,
+		LogLevel_Type_DEBUG: LogLevel_DEBUG,
+		LogLevel_Type_INFO:  LogLevel_INFO,
+		LogLevel_Type_WARN:  LogLevel_WARN,
+		LogLevel_Type_ERROR: LogLevel_ERROR,
+	}
+	selflog = NewLog()
 }
-
-// func Initialize(logLevel string) {
-// 	selflog = SetupLog("", logLevel)
-// }
 
 func TimeIt(slog *SLOG) func(format string, a ...interface{}) int64 {
 	return TimeItWithLogFunc(slog.Debugf, 3)
