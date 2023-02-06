@@ -53,11 +53,7 @@ func init() {
 	)
 }
 
-func Initialize(url, user, password, logLevel string) *BIGIP {
-	return setupBIGIP(url, user, password)
-}
-
-func setupBIGIP(url, user, password string) *BIGIP {
+func New(url, user, password string) *BIGIP {
 	bauth := "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password))
 	bip := BIGIP{
 		URL:           url,
