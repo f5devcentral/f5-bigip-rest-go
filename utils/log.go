@@ -9,8 +9,8 @@ import (
 
 func NewLog() *SLOG {
 	slog := SLOG{
-		requestID: "",
-		level:     LogLevel_INFO,
+		requestID: "-",
+		Level:     LogLevel_INFO,
 		loggers:   map[int]*log.Logger{},
 	}
 	for n, l := range levels {
@@ -30,12 +30,12 @@ func (slog *SLOG) WithRequestID(reqid string) *SLOG {
 }
 
 func (slog *SLOG) WithLevel(level string) *SLOG {
-	slog.level = atoiLevel(level)
+	slog.Level = atoiLevel(level)
 	return slog
 }
 
 func (slog *SLOG) Infof(format string, v ...interface{}) {
-	if slog.level >= LogLevel_INFO {
+	if slog.Level >= LogLevel_INFO {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
 			slog.loggers[LogLevel_INFO].Printf(m)
@@ -44,7 +44,7 @@ func (slog *SLOG) Infof(format string, v ...interface{}) {
 }
 
 func (slog *SLOG) Debugf(format string, v ...interface{}) {
-	if slog.level >= LogLevel_DEBUG {
+	if slog.Level >= LogLevel_DEBUG {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
 			slog.loggers[LogLevel_DEBUG].Printf(m)
@@ -53,7 +53,7 @@ func (slog *SLOG) Debugf(format string, v ...interface{}) {
 }
 
 func (slog *SLOG) Warnf(format string, v ...interface{}) {
-	if slog.level >= LogLevel_WARN {
+	if slog.Level >= LogLevel_WARN {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
 			slog.loggers[LogLevel_WARN].Printf(m)
@@ -62,7 +62,7 @@ func (slog *SLOG) Warnf(format string, v ...interface{}) {
 }
 
 func (slog *SLOG) Errorf(format string, v ...interface{}) {
-	if slog.level >= LogLevel_ERROR {
+	if slog.Level >= LogLevel_ERROR {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
 			slog.loggers[LogLevel_ERROR].Printf(m)
@@ -71,7 +71,7 @@ func (slog *SLOG) Errorf(format string, v ...interface{}) {
 }
 
 func (slog *SLOG) Tracef(format string, v ...interface{}) {
-	if slog.level >= LogLevel_TRACE {
+	if slog.Level >= LogLevel_TRACE {
 		msg := fmt.Sprintf(format, v...)
 		for _, m := range strings.Split(msg, "\n") {
 			slog.loggers[LogLevel_TRACE].Printf(m)
