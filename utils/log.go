@@ -15,7 +15,11 @@ func NewLog() *SLOG {
 	}
 	for n, l := range levels {
 		prefix := markLogPrefix(n, slog.requestID)
-		slog.loggers[l] = log.New(os.Stdout, prefix, flags)
+		if l <= LogLevel_ERROR {
+			slog.loggers[l] = log.New(os.Stderr, prefix, flags)
+		} else {
+			slog.loggers[l] = log.New(os.Stdout, prefix, flags)
+		}
 	}
 	return &slog
 }
