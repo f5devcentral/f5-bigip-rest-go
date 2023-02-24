@@ -35,6 +35,11 @@ func init() {
 		`net/fdb/tunnel$`,
 		`net/ndp$`,
 		`net/routing/bgp$`,
+		`gtm/datacenter`,
+		`gtm/server`,
+		`gtm/monitor/\w+`,
+		`gtm/pool/\w+`,
+		`gtm/wideip`,
 	}
 	BIGIPiControlTimeCostTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -434,8 +439,19 @@ func layoutCmds(c, d, u []RestRequest) []RestRequest {
 	dd := sortCmds(d, true)
 	uu := sortCmds(u, false)
 
-	cmds = append(cmds, cc...)
-	cmds = append(cmds, uu...)
+	cidx, uidx := 0, 0
+	for _, k := range ResOrder {
+		krex := regexp.MustCompile(k)
+		for ; cidx < len(cc) && krex.MatchString(cc[cidx].Kind); cidx++ {
+			cmds = append(cmds, cc[cidx])
+		}
+
+		for ; uidx < len(uu) && krex.MatchString(uu[uidx].Kind); uidx++ {
+			cmds = append(cmds, uu[uidx])
+		}
+	}
+	cmds = append(cmds, cc[cidx:]...)
+	cmds = append(cmds, uu[uidx:]...)
 	cmds = append(cmds, dd...)
 
 	return cmds

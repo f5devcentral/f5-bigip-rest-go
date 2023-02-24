@@ -414,7 +414,7 @@ func Test_layoutCmds(t *testing.T) {
 		ResName:   "f1",
 		Partition: "p1",
 		Subfolder: "f1",
-		Kind:      "net/fdb",
+		Kind:      "net/fdb/tunnel",
 	}
 
 	tests := []struct {
@@ -458,8 +458,8 @@ func Test_layoutCmds(t *testing.T) {
 				},
 			},
 			want: []RestRequest{
-				folder, monitor, node, pool, virtual, arp,
-				snatpool, profile, rule, virtualAddress, fdb,
+				folder, monitor, node, pool, snatpool, profile,
+				rule, virtualAddress, virtual, arp, fdb,
 			},
 		},
 		{
@@ -508,8 +508,8 @@ func Test_layoutCmds(t *testing.T) {
 				},
 			},
 			want: []RestRequest{
-				monitor, snatpool, virtualAddress, arp,
-				folder, node, pool, virtual,
+				folder, monitor, node, pool, snatpool,
+				virtualAddress, virtual, arp,
 				fdb, rule, profile,
 			},
 		},
