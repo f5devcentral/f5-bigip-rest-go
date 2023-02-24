@@ -184,6 +184,11 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 	return &exists, nil
 }
 
+// GenRestRequests generate a list of rest requests, each item is type of RestRequest
+// GenRestRequests will compare the passed ocfg and ncfg, and in addition the actual states
+// got from BIG-IP, and concludes into a list of RestRequests indicating
+// which resource needs to be POST, PATCH or DELETE, and in which order.
+// The generated []RestRequest will be used by DoRestRequests function for execution in trasaction mode.
 func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}) (*[]RestRequest, error) {
 	defer utils.TimeItToPrometheus()()
 	slog := utils.LogFromContext(bc.Context)
@@ -316,6 +321,7 @@ func (bc *BIGIPContext) cfg2RestRequests(partition, operation string, cfg map[st
 	return rrs, nil
 }
 
+// DeployPartition create the specified partition if not exists on BIG-IP
 func (bc *BIGIPContext) DeployPartition(name string) error {
 	if name == "Common" {
 		return nil
@@ -331,6 +337,7 @@ func (bc *BIGIPContext) DeployPartition(name string) error {
 	return nil
 }
 
+// DeletePartition delete the specified partition if exists on BIG-IP
 func (bc *BIGIPContext) DeletePartition(name string) error {
 	if name == "Common" {
 		return nil
