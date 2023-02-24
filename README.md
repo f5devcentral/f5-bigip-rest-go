@@ -1,25 +1,24 @@
 # f5-bigip-rest
 
-This is a module separated from the code repository [f5-kic](https://gitee.com/zongzw/f5-kic).
+## Repository Introduction
 
-It's used to deploy BIG-IP resources via iControl REST.
+The f5-bigip-rest repository encapsulates BIG-IP iControlRest calls in a simple and usable way. It contains two separate modules: `bigip` and `utils`
 
-See [f5-kic](https://gitee.com/zongzw/f5-kic) or [bigip-kubernetes-gateway](https://gitee.com/zongzw/bigip-kubernetes-gateway) for more details.
+* `bigip` module can execute various BIG-IP iControlRest commands in the form of transactions, and the list of currently supported resources can be found [here](./bigip/utils.go).
+* `utils` module encapsulates some necessary common objects and functions, such as logging, Prometheus monitoring, and HTTPRequest capabilities. See below for their usages.
 
-Also, [f5-tool-deploy-rest](https://gitee.com/zongzw/f5-tool-deploy-rest) is a simpler usage sample for reference.
+## Module Usages
 
+module `bigip`:
 
 ```golang
 
 import (
     ...
 	f5_bigip "gitee.com/zongzw/f5-bigip-rest/bigip"
-	"gitee.com/zongzw/f5-bigip-rest/utils"
 )
 
 func deployVirtualPool(ctx context.Context, name, partition string) error {
-	defer utils.TimeItToPrometheus()()
-	slog := utils.LogFromContext(ctx)
 	bc := newBIGIPContext(ctx)
 
 	...
@@ -43,3 +42,5 @@ func deployVirtualPool(ctx context.Context, name, partition string) error {
 	return nil
 }
 ```
+
+Further, it's easy to find some detailed usages from [f5-tool-deploy-rest](https://gitee.com/zongzw/f5-tool-deploy-rest).
