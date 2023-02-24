@@ -52,6 +52,20 @@ func (bc *BIGIPContext) constructLTMRes(kind, name, partition, subfolder string,
 	}
 }
 
+func (bc *BIGIPContext) constructGTMRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
+	return RestRequest{
+		Method:    "NOPE",
+		Headers:   map[string]interface{}{},
+		Body:      body,
+		ResUri:    "/mgmt/tm/" + kind,
+		Kind:      kind,
+		ResName:   name,
+		Partition: partition,
+		Subfolder: subfolder,
+		WithTrans: true,
+	}
+}
+
 func (bc *BIGIPContext) constructNetRes(kind, name, partition, subfolder string, body interface{}) RestRequest {
 	return RestRequest{
 		Method:    "NOPE",
@@ -142,7 +156,10 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 	}
 
 	for _, kind := range kinds {
-		if !(strings.HasPrefix(kind, "sys/") || strings.HasPrefix(kind, "ltm/") || strings.HasPrefix(kind, "net/")) {
+		if !(strings.HasPrefix(kind, "sys/") ||
+			strings.HasPrefix(kind, "ltm/") ||
+			strings.HasPrefix(kind, "net/") ||
+			strings.HasPrefix(kind, "gtm/")) {
 			continue
 		}
 		exists[kind] = map[string]interface{}{}
@@ -267,6 +284,9 @@ func (bc *BIGIPContext) cfg2RestRequests(partition, operation string, cfg map[st
 			switch rootKind {
 			case "ltm":
 				r = bc.constructLTMRes(t, n, partition, fn, body)
+				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
+			case "gtm":
+				r = bc.constructGTMRes(t, n, partition, fn, body)
 				r.Method = opr2method(operation, nil != getFromExists(t, partition, fn, n, exists))
 			case "net":
 				r = bc.constructNetRes(t, n, partition, fn, body)

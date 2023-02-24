@@ -35,6 +35,11 @@ func init() {
 		`net/fdb/tunnel$`,
 		`net/ndp$`,
 		`net/routing/bgp$`,
+		`gtm/datacenter`,
+		`gtm/server`,
+		`gtm/monitor/\w+`,
+		`gtm/pool/\w+`,
+		`gtm/wideip`,
 	}
 	BIGIPiControlTimeCostTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
