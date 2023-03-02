@@ -21,6 +21,7 @@ func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) chan DeployRequest
 		for {
 			select {
 			case <-stopCh:
+				close(pendingDeploys)
 				return
 			case r := <-pendingDeploys:
 				slog := utils.LogFromContext(r.Context)
