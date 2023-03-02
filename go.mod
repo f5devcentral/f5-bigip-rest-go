@@ -1,4 +1,4 @@
-module gitee.com/zongzw/f5-bigip-rest
+module github.com/zongzw/f5-bigip-rest
 
 go 1.19
 

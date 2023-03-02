@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	utils "gitee.com/zongzw/f5-bigip-rest/utils"
+	utils "github.com/zongzw/f5-bigip-rest/utils"
 )
 
 func (bc *BIGIPContext) Exist(kind, name, partition, subfolder string) (*map[string]interface{}, error) {

@@ -7,7 +7,7 @@ import (
 	"os"
 
 	// import bigip module
-	f5_bigip "gitee.com/zongzw/f5-bigip-rest/bigip"
+	f5_bigip "github.com/zongzw/f5-bigip-rest/bigip"
 )
 
 func main() {

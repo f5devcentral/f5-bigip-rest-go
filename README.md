@@ -18,7 +18,7 @@ package main
 
 import (
 	// import bigip module
-	f5_bigip "gitee.com/zongzw/f5-bigip-rest/bigip"
+	f5_bigip "github.com/zongzw/f5-bigip-rest/bigip"
 )
 
 func main() {
@@ -110,7 +110,7 @@ import (
 	"net/http"
 	"time"
 
-	"gitee.com/zongzw/f5-bigip-rest/utils"
+	"github.com/zongzw/f5-bigip-rest/utils"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -132,7 +132,7 @@ func main() {
 	// register prometheus metric names.
 	prometheus.MustRegister(utils.FunctionDurationTimeCostCount)
 	prometheus.MustRegister(utils.FunctionDurationTimeCostTotal)
-	// f5_bigip "gitee.com/zongzw/f5-bigip-rest/bigip"
+	// f5_bigip "github.com/zongzw/f5-bigip-rest/bigip"
 	// prometheus.MustRegister(f5_bigip.BIGIPiControlTimeCostCount)
 	// prometheus.MustRegister(f5_bigip.BIGIPiControlTimeCostTotal)
 

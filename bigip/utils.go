@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	utils "gitee.com/zongzw/f5-bigip-rest/utils"
 	"github.com/prometheus/client_golang/prometheus"
+	utils "github.com/zongzw/f5-bigip-rest/utils"
 )
 
 func init() {
