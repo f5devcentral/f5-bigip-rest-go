@@ -2,10 +2,11 @@
 
 ## Repository Introduction
 
-The f5-bigip-rest repository encapsulates BIG-IP iControlRest calls in a simple and usable way. It contains two separate modules: `bigip` and `utils`
+The f5-bigip-rest repository encapsulates BIG-IP iControlRest calls in a simple and usable way. It contains two separate modules: `bigip`, `utils` and `deployer`
 
 * `bigip` module can execute various BIG-IP iControlRest commands in the form of transactions, and the list of currently supported resources can be found [here](./bigip/utils.go).
 * `utils` module encapsulates some necessary common objects and functions, such as logging, Prometheus monitoring, and HTTPRequest capabilities. See below for their usages.
+* `deployer` module is used to start a deployer co-routine to accept deployment request, thus, the caller just needs to post the [`DeployRequest`](./deployer/types.go) to it. It's responsible for run the deployment.
 
 ## Module Usages
 
@@ -168,3 +169,53 @@ func callMonitoredFunc(ctx context.Context) {
 ```
 
 Further, it's easy to find some detailed usages from [f5-tool-deploy-rest](https://gitee.com/zongzw/f5-tool-deploy-rest).
+
+### `deployer` module
+
+```golang
+package main
+
+import (
+	...
+
+	// import deployer module
+	"github.com/zongzw/f5-bigip-rest/deployer"
+)
+
+func main() {
+	bigip := f5_bigip.New("https://1.2.3.4", "admin", "password")
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	// create deployer program with given bigip list, returns a chan for accepting DeployRequest
+	reqChan := deployer.Deployer(stopCh, []*f5_bigip.BIGIP{bigip})
+
+	...
+
+	// post the deploy request to the channel.
+	reqChan <- deployer.DeployRequest{
+		Meta:      "test deployment with deployer",
+		From:      nil,
+		To:        &ncfgs,
+		Partition: partition,
+		Context:   lctx1,
+	}
+
+	...
+
+	// post the deletion request to channel.
+	reqChan <- deployer.DeployRequest{
+		Meta:      "test deletion with deployer",
+		From:      &ncfgs,
+		To:        nil,
+		Partition: partition,
+		Context:   lctx2,
+	}
+
+	...
+}
+
+```
+
+Check the [example](./examples/deployer/deployer.go) for more detail.
