@@ -401,3 +401,19 @@ func RequestIdFromContext(ctx context.Context) string {
 		return reqid
 	}
 }
+
+func MergeErrors(errs []error) error {
+	msgs := []string{}
+	for _, err := range errs {
+		if err != nil {
+			msgs = append(msgs, err.Error())
+		}
+	}
+
+	msg := strings.Join(msgs, ";")
+	if msg == "" {
+		return nil
+	} else {
+		return fmt.Errorf(msg)
+	}
+}

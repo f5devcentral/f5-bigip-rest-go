@@ -2,6 +2,7 @@ package deployer
 
 import (
 	"fmt"
+	"sync"
 
 	f5_bigip "github.com/zongzw/f5-bigip-rest/bigip"
 	"github.com/zongzw/f5-bigip-rest/utils"
@@ -32,7 +33,6 @@ func HandleRequest(bc *f5_bigip.BIGIPContext, r DeployRequest) error {
 		}
 	}
 	if err := deploy(bc, r.Partition, r.From, r.To); err != nil {
-		// report the error to status or ...
 		return fmt.Errorf("failed to do deployment to %s: %s", bc.URL, err.Error())
 	}
 	if r.Context.Value(CtxKey_DeletePartition) != nil {
@@ -44,8 +44,12 @@ func HandleRequest(bc *f5_bigip.BIGIPContext, r DeployRequest) error {
 	return nil
 }
 
-func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) chan DeployRequest {
+func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) (chan DeployRequest, *DeployResponses) {
 	pendingDeploys := make(chan DeployRequest, 16)
+	doneDeploys := &DeployResponses{
+		mutex: sync.Mutex{},
+		data:  []*DeployResponse{},
+	}
 	go func() {
 		for {
 			select {
@@ -55,15 +59,47 @@ func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) chan DeployRequest
 			case r := <-pendingDeploys:
 				slog := utils.LogFromContext(r.Context)
 				slog.Infof("Processing request: %s", r.Meta)
+				errs := []error{}
 				for _, bigip := range bigips {
 					bc := &f5_bigip.BIGIPContext{BIGIP: *bigip, Context: r.Context}
 					if err := HandleRequest(bc, r); err != nil {
 						// report status
 						slog.Errorf(err.Error())
+						errs = append(errs, err)
 					}
 				}
+
+				resp := DeployResponse{DeployRequest: r, Status: utils.MergeErrors(errs)}
+				doneDeploys.Append(&resp)
 			}
 		}
 	}()
-	return pendingDeploys
+	return pendingDeploys, doneDeploys
+}
+
+func (dr *DeployResponses) Append(r *DeployResponse) {
+	dr.mutex.Lock()
+	defer dr.mutex.Unlock()
+
+	dr.data = append(dr.data, r)
+}
+
+func (dr *DeployResponses) Shift() *DeployResponse {
+	dr.mutex.Lock()
+	defer dr.mutex.Unlock()
+
+	if len(dr.data) == 0 {
+		return nil
+	} else {
+		f := dr.data[0]
+		dr.data = dr.data[1:]
+		return f
+	}
+}
+
+func (dr *DeployResponses) Empty() bool {
+	dr.mutex.Lock()
+	defer dr.mutex.Unlock()
+
+	return len(dr.data) == 0
 }

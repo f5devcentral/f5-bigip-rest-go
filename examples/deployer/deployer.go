@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"time"
 
 	f5_bigip "github.com/zongzw/f5-bigip-rest/bigip"
@@ -16,8 +17,9 @@ func main() {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	// create deployer program with given bigip list, returns a chan for accepting DeployRequest
-	reqChan := deployer.Deployer(stopCh, []*f5_bigip.BIGIP{bigip})
+	// create deployer program with given bigip list,
+	// returns a chan for accepting DeployRequest and a list for accepting DeployResponse
+	reqChan, respList := deployer.Deployer(stopCh, []*f5_bigip.BIGIP{bigip})
 
 	slog := utils.NewLog().WithLevel(utils.LogLevel_Type_DEBUG)
 	ctx := context.WithValue(context.TODO(), utils.CtxKey_Logger, slog)
@@ -47,24 +49,15 @@ func main() {
 		Context:   lctx1,
 	}
 
-	// used to check bigip resource creation/deletion.
-	bc := f5_bigip.BIGIPContext{BIGIP: *bigip, Context: ctx}
-
 	// check myvirtual is created.
-	for {
-		slog.Debugf("check virtual existing")
-		<-time.After(1 * time.Second)
-		if existings, err := bc.GetExistingResources(partition, []string{"ltm/virtual"}); err != nil {
-			slog.Errorf("failed to get existing resources: %s", err.Error())
-			break
-		} else {
-			if v, ok := (*existings)["ltm/virtual"]; ok {
-				if _, found := v[utils.Keyname(partition, "myvirtual")]; found {
-					slog.Infof("resource %s/%s created.", partition, "myvirtual")
-					break
-				}
-			}
-		}
+	for pending := true; pending; pending = respList.Empty() {
+		slog.Debugf("waiting for response")
+		<-time.After(100 * time.Millisecond)
+	}
+
+	if resp := respList.Shift(); resp.Status != nil {
+		slog.Errorf("failed to do deployment: %s", resp.Status.Error())
+		os.Exit(1)
 	}
 
 	// lctx2 tells the deployer to delete partition after resource deletion.
@@ -80,22 +73,12 @@ func main() {
 	}
 
 	// check the resource is deleted.
-	for {
-		slog.Debugf("check virtual deleted")
-		<-time.After(1 * time.Second)
-		if existings, err := bc.GetExistingResources(partition, []string{"ltm/virtual"}); err != nil {
-			slog.Errorf("failed to get existing resources: %s", err.Error())
-			break
-		} else {
-			if v, ok := (*existings)["ltm/virtual"]; !ok {
-				slog.Infof("resource kind ltm/virtual not found.")
-				break
-			} else {
-				if _, found := v[utils.Keyname(partition, "myvirtual")]; !found {
-					slog.Infof("resource %s/%s deleted.", partition, "myvirtual")
-					break
-				}
-			}
-		}
+	for pending := true; pending; pending = respList.Empty() {
+		slog.Debugf("waiting for response")
+		<-time.After(100 * time.Millisecond)
+	}
+	if resp := respList.Shift(); resp.Status != nil {
+		slog.Errorf("failed to do deletion: %s", resp.Status.Error())
+		os.Exit(1)
 	}
 }
