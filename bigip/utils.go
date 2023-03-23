@@ -151,7 +151,8 @@ func refname(partition, subfolder, name string) string {
 	if rn != "" {
 		rn = "~" + rn
 	}
-	return url.QueryEscape(rn)
+	escaped := url.QueryEscape(rn)
+	return strings.ReplaceAll(escaped, "%2F", "/")
 }
 
 func bigipVersion(sysinfo map[string]interface{}) (string, error) {

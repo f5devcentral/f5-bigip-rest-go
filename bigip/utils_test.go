@@ -522,3 +522,61 @@ func Test_layoutCmds(t *testing.T) {
 		})
 	}
 }
+
+func Test_refname(t *testing.T) {
+	type args struct {
+		partition string
+		subfolder string
+		name      string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "normal",
+			args: args{
+				partition: "partition",
+				subfolder: "subfolder",
+				name:      "pool",
+			},
+			want: "~partition~subfolder~pool",
+		},
+		{
+			name: "empty subfolder",
+			args: args{
+				partition: "partition",
+				subfolder: "",
+				name:      "pool",
+			},
+			want: "~partition~pool",
+		},
+		{
+			name: "route-domained resource",
+			args: args{
+				partition: "partition",
+				subfolder: "",
+				name:      "pool%23",
+			},
+			want: "~partition~pool%2523",
+		},
+
+		{
+			name: "pathed resource",
+			args: args{
+				partition: "partition",
+				subfolder: "",
+				name:      "pool/members",
+			},
+			want: "~partition~pool/members",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := refname(tt.args.partition, tt.args.subfolder, tt.args.name); got != tt.want {
+				t.Errorf("refname() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
