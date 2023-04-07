@@ -8,6 +8,34 @@ The f5-bigip-rest repository encapsulates BIG-IP iControlRest calls in a simple 
 * `utils` module encapsulates some necessary common objects and functions, such as logging, Prometheus monitoring, and HTTPRequest capabilities. See below for their usages.
 * `deployer` module is used to start a deployer co-routine to accept deployment request, thus, the caller just needs to post the [`DeployRequest`](./deployer/types.go) to it. It's responsible for run the deployment.
 
+The resources supported:
+
+```shell
+	`sys/folder`,
+	`shared/file-transfer/uploads`,
+	`sys/file/ssl-(cert|key)`,
+	`ltm/monitor/\w+`,
+	`ltm/node`,
+	`ltm/pool`,
+	`ltm/snat-translation`,
+	`ltm/snatpool`,
+	`ltm/profile/\w+`,
+	`ltm/persistence/\w+`,
+	`ltm/snat$`,
+	`ltm/rule$`,
+	`ltm/virtual-address`,
+	`ltm/virtual$`,
+	`net/arp$`,
+	`net/fdb/tunnel$`,
+	`net/ndp$`,
+	`net/routing/bgp$`,
+	`gtm/datacenter`,
+	`gtm/server`,
+	`gtm/monitor/\w+`,
+	`gtm/pool/\w+`,
+	`gtm/wideip`,
+```
+
 ## Module Usages
 
 ### `bigip` module:
