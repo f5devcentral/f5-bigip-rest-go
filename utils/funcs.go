@@ -185,21 +185,25 @@ func DeepCopy(value interface{}) (interface{}, error) {
 	}
 }
 
-func DeepEqual(a, b map[string]interface{}) bool {
-	// data of map[string]interface{} may contain reference,
-	// thus we re-un-marshal the data to a successive data.
-	// what's more, after DeepCopy, int(1) != float64(1)
-	var ja, jb map[string]interface{}
-	if ba, err := json.Marshal(a); err != nil {
+func DeepEqual(a, b interface{}) bool {
+	ba, ea := json.Marshal(a)
+	bb, eb := json.Marshal(b)
+	if ea != nil || eb != nil {
 		return false
-	} else {
-		json.Unmarshal(ba, &ja)
 	}
 
-	if bb, err := json.Marshal(b); err != nil {
+	// for unmarshallable types: int float64 string ...
+	// error(*encoding/json.InvalidUnmarshalError) *{Type: reflect.Type nil}
+	if reflect.DeepEqual(ba, bb) {
+		return true
+	}
+
+	// ja and jb have no type info,
+	// so that []interface{}{"abc"} and []string{"abc"} are the same.
+	var ja, jb interface{}
+	ea, eb = json.Unmarshal(ba, ja), json.Unmarshal(bb, jb)
+	if ea != nil || eb != nil {
 		return false
-	} else {
-		json.Unmarshal(bb, &jb)
 	}
 	return reflect.DeepEqual(ja, jb)
 }
@@ -361,13 +365,11 @@ func NeedRetry(err error) bool {
 }
 
 func FieldsIsExpected(fields, expected interface{}) bool {
-	if reflect.TypeOf(fields) != reflect.TypeOf(expected) {
-		return false
-	}
 	if fields == nil {
 		return true
 	}
-	if reflect.TypeOf(fields).Kind().String() == "map" {
+	if reflect.TypeOf(fields).Kind().String() == "map" &&
+		reflect.TypeOf(expected).Kind().String() == "map" {
 		for k, v := range fields.(map[string]interface{}) {
 			if exp, f := expected.(map[string]interface{})[k]; !f || !reflect.DeepEqual(v, exp) {
 				return false
@@ -375,7 +377,7 @@ func FieldsIsExpected(fields, expected interface{}) bool {
 		}
 		return true
 	} else {
-		return reflect.DeepEqual(fields, expected)
+		return DeepEqual(fields, expected)
 	}
 }
 

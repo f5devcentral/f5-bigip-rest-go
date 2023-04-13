@@ -104,7 +104,6 @@ func Test_FieldsIsExpected(t *testing.T) {
 			},
 			want: false,
 		},
-
 		{
 			name: "n field json true",
 			args: args{
@@ -118,7 +117,6 @@ func Test_FieldsIsExpected(t *testing.T) {
 			},
 			want: true,
 		},
-
 		{
 			name: "n field json false",
 			args: args{
@@ -132,7 +130,6 @@ func Test_FieldsIsExpected(t *testing.T) {
 			},
 			want: false,
 		},
-
 		{
 			name: "n field json true",
 			args: args{
@@ -152,7 +149,6 @@ func Test_FieldsIsExpected(t *testing.T) {
 			},
 			want: true,
 		},
-
 		{
 			name: "n field json true",
 			args: args{
@@ -196,7 +192,7 @@ func Test_FieldsIsExpected(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "nil json false",
+			name: "nil json true",
 			args: args{
 				fields: nil,
 				expected: map[string]interface{}{
@@ -206,7 +202,7 @@ func Test_FieldsIsExpected(t *testing.T) {
 					"b": "x",
 				},
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "array true",
@@ -224,11 +220,119 @@ func Test_FieldsIsExpected(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "int and float64 true",
+			args: args{
+				fields:   23,
+				expected: float64(23),
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := FieldsIsExpected(tt.args.fields, tt.args.expected); got != tt.want {
 				t.Errorf("FieldsIsExpected() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDeepEqual(t *testing.T) {
+	type args struct {
+		a interface{}
+		b interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "int",
+			args: args{
+				a: 11,
+				b: 11,
+			},
+			want: true,
+		},
+		{
+			name: "int float64",
+			args: args{
+				a: 11,
+				b: float64(11),
+			},
+			want: true,
+		},
+		{
+			name: "string",
+			args: args{
+				a: "11",
+				b: "11",
+			},
+			want: true,
+		},
+		{
+			name: "array true",
+			args: args{
+				a: []int{11},
+				b: []int{11},
+			},
+			want: true,
+		},
+		{
+			name: "array true",
+			args: args{
+				a: []int{11},
+				b: []float64{11},
+			},
+			want: true,
+		},
+		{
+			name: "array true",
+			args: args{
+				a: []float32{11},
+				b: []float64{11},
+			},
+			want: true,
+		},
+		{
+			name: "array false",
+			args: args{
+				a: []int{11, 12},
+				b: []int{12, 11},
+			},
+			want: false,
+		},
+		{
+			name: "map true",
+			args: args{
+				a: map[string]interface{}{
+					"a": 11,
+				},
+				b: map[string]int{
+					"a": 11,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "map true",
+			args: args{
+				a: map[string]interface{}{
+					"a": 11,
+				},
+				b: map[string]string{
+					"a": "11",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := DeepEqual(tt.args.a, tt.args.b); got != tt.want {
+				t.Errorf("DeepEqual() = %v, want %v", got, tt.want)
 			}
 		})
 	}
