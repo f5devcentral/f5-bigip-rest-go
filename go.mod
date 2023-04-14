@@ -2,7 +2,10 @@ module github.com/f5devcentral/f5-bigip-rest
 
 go 1.19
 
-require github.com/prometheus/client_golang v1.13.0
+require (
+	github.com/google/uuid v1.3.0
+	github.com/prometheus/client_golang v1.13.0
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
