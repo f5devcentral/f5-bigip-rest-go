@@ -2,7 +2,7 @@ module test
 
 go 1.19
 
-require github.com/zongzw/f5-bigip-rest v1.0.2
+require github.com/f5devcentral/f5-bigip-rest v1.0.2
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

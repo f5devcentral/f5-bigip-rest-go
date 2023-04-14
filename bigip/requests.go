@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zongzw/f5-bigip-rest/utils"
+	"github.com/f5devcentral/f5-bigip-rest/utils"
 )
 
 func (bc *BIGIPContext) DoRestRequests(rr *[]RestRequest) error {
