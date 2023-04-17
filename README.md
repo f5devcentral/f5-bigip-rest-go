@@ -1,4 +1,4 @@
-# f5-bigip-rest
+# f5-bigip-rest-go
 
 F5 BIG-IP provides multiple kinds of configuration utilities, including xui, tmsh and iControl Rest.
 
