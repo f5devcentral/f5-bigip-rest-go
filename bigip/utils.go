@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	utils "github.com/f5devcentral/f5-bigip-rest/utils"
+	utils "github.com/f5devcentral/f5-bigip-rest-go/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

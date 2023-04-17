@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	utils "github.com/f5devcentral/f5-bigip-rest/utils"
+	utils "github.com/f5devcentral/f5-bigip-rest-go/utils"
 )
 
 func Test_assertBigipResp20X(t *testing.T) {

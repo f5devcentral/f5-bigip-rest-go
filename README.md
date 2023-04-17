@@ -49,21 +49,14 @@ There are 3 modules in the library.
 
 ## Differences between [scottdware/go-bigip](https://github.com/scottdware/go-bigip) and [f5-bigip-rest-go](https://github.com/f5devcentral/f5-bigip-rest-go)
 
-scottdware/go-bigip:
 
-* Objectifies BIG-IP resources and their CRUD functions. 
-* It's strongly typed encapsulation.
-* Callers are responsible for instantizing resources can call APIs in sequence.
-* No transaction support.
-* It's a imperative way to setup ADC abilities on BIG-IP. 
-
-f5devcentral/f5-bigip-rest-go:
-
-* Does no objectifications, only generalized APIs that can be applied to all resources. 
-* It's a weakly typed encapsulation with orchestration ability. 
-* With the provided JSON-format input schema, callers can settle the JSON inputs of multiple resources with type, name, and body
-* Regulates, organizes and applies them to BIG-IP in a transaction way.
-* The inputting schema is like iControl Rest calls in POSTMAN, while, the deploying process is a declarative mode, like AS3.
+|scottdware/go-bigip|f5devcentral/f5-bigip-rest-go|
+|--|--|
+|Objectifies BIG-IP resources and their CRUD functions|Does no objectifications, only generalized APIs that can be applied to all resources.|
+|It's strongly typed encapsulation.|It's a weakly typed encapsulation with orchestration ability. |
+|Callers are responsible for instantizing resources can call APIs in sequence.|With the provided JSON-format input schema, callers can settle the JSON inputs of multiple resources with type, name, and body |
+|No transaction support.|Regulates, organizes and applies them to BIG-IP in a transaction way.|
+|It's a imperative way to setup ADC abilities on BIG-IP. |The inputting schema is like iControl Rest calls in POSTMAN, while, the deploying process is a declarative mode, like AS3.|
 
 ## Supported Resources:
 

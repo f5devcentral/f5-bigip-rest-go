@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	f5_bigip "github.com/f5devcentral/f5-bigip-rest/bigip"
+	f5_bigip "github.com/f5devcentral/f5-bigip-rest-go/bigip"
 	// import deployer module
-	"github.com/f5devcentral/f5-bigip-rest/deployer"
-	"github.com/f5devcentral/f5-bigip-rest/utils"
+	"github.com/f5devcentral/f5-bigip-rest-go/deployer"
+	"github.com/f5devcentral/f5-bigip-rest-go/utils"
 )
 
 func main() {

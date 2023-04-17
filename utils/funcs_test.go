@@ -215,8 +215,8 @@ func Test_FieldsIsExpected(t *testing.T) {
 		{
 			name: "string true",
 			args: args{
-				fields:   "f5-bigip-rest",
-				expected: "f5-bigip-rest",
+				fields:   "f5-bigip-rest-go",
+				expected: "f5-bigip-rest-go",
 			},
 			want: true,
 		},

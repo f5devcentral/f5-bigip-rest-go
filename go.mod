@@ -1,4 +1,4 @@
-module github.com/f5devcentral/f5-bigip-rest
+module github.com/f5devcentral/f5-bigip-rest-go
 
 go 1.19
 
