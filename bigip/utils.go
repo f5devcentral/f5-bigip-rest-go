@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -32,10 +31,10 @@ func init() {
 		`ltm/virtual-address`,
 		`ltm/virtual$`,
 		`net/arp$`,
+		`net/ndp$`,
 		`net/tunnels/vxlan$`,
 		`net/tunnels/tunnel$`,
 		`net/fdb/tunnel$`,
-		`net/ndp$`,
 		`net/routing/bgp$`,
 		`net/self$`,
 		`gtm/datacenter`,
@@ -141,21 +140,6 @@ func assertBigipResp20X(statusCode int, resp []byte) error {
 
 	// gui error but no impact to restapi
 	// https://10.250.118.253:8443/tmui/login.jsp?msgcode=2&
-}
-
-func refname(partition, subfolder, name string) string {
-	l := []string{}
-	for _, x := range []string{partition, subfolder, name} {
-		if x != "" {
-			l = append(l, x)
-		}
-	}
-	rn := strings.Join(l, "~")
-	if rn != "" {
-		rn = "~" + rn
-	}
-	escaped := url.QueryEscape(rn)
-	return strings.ReplaceAll(escaped, "%2F", "/")
 }
 
 func bigipVersion(sysinfo map[string]interface{}) (string, error) {
@@ -399,7 +383,7 @@ func sweepCmds(dels, crts map[string][]RestRequest, existings *map[string]map[st
 
 	cc, dd, uu := []RestRequest{}, []RestRequest{}, []RestRequest{}
 
-	for _, r := range c {
+	for _, r := range append(c, u...) {
 		b := getFromExists(r.Kind, r.Partition, r.Subfolder, r.ResName, existings)
 		if b == nil {
 			r.Method = "POST"
@@ -418,18 +402,6 @@ func sweepCmds(dels, crts map[string][]RestRequest, existings *map[string]map[st
 		} else {
 			r.Method = "DELETE"
 			dd = append(dd, r)
-		}
-	}
-	for _, r := range u {
-		b := getFromExists(r.Kind, r.Partition, r.Subfolder, r.ResName, existings)
-		if b == nil {
-			r.Method = "POST"
-			cc = append(cc, r)
-		} else {
-			if !utils.FieldsIsExpected(r.Body, *b) {
-				r.Method = "PATCH"
-				uu = append(uu, r)
-			}
 		}
 	}
 

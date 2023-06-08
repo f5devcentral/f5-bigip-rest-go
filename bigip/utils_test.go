@@ -574,7 +574,7 @@ func Test_refname(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := refname(tt.args.partition, tt.args.subfolder, tt.args.name); got != tt.want {
+			if got := utils.Refname(tt.args.partition, tt.args.subfolder, tt.args.name); got != tt.want {
 				t.Errorf("refname() = %v, want %v", got, tt.want)
 			}
 		})

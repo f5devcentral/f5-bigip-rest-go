@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -136,6 +137,21 @@ func Keyname(s ...string) string {
 		}
 	}
 	return strings.Join(a, "/")
+}
+
+func Refname(partition, subfolder, name string) string {
+	l := []string{}
+	for _, x := range []string{partition, subfolder, name} {
+		if x != "" {
+			l = append(l, x)
+		}
+	}
+	rn := strings.Join(l, "~")
+	if rn != "" {
+		rn = "~" + rn
+	}
+	escaped := url.QueryEscape(rn)
+	return strings.ReplaceAll(escaped, "%2F", "/")
 }
 
 // Bad implementation:

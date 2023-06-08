@@ -10,7 +10,7 @@ import (
 )
 
 func (bc *BIGIPContext) Exist(kind, name, partition, subfolder string) (*map[string]interface{}, error) {
-	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s", uriname(kind, refname(partition, subfolder, name)))
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s", uriname(kind, utils.Refname(partition, subfolder, name)))
 	method := "GET"
 	payload := ""
 	headers := map[string]string{
@@ -69,7 +69,7 @@ func (bc *BIGIPContext) Deploy(kind, name, partition, subfolder string, body map
 }
 
 func (bc *BIGIPContext) Update(kind, name, partition, subfolder string, body map[string]interface{}) error {
-	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, refname(partition, subfolder, name))
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, utils.Refname(partition, subfolder, name))
 	method := "PATCH"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
@@ -90,7 +90,7 @@ func (bc *BIGIPContext) Update(kind, name, partition, subfolder string, body map
 }
 
 func (bc *BIGIPContext) Delete(kind, name, partition, subfolder string) error {
-	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, refname(partition, subfolder, name))
+	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s/%s", kind, utils.Refname(partition, subfolder, name))
 	method := "DELETE"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
@@ -202,19 +202,17 @@ func (bc *BIGIPContext) Tmsh(cmd string) (*map[string]interface{}, error) {
 	return &jresp, assertBigipResp20X(code, resp)
 }
 
-func (bc *BIGIPContext) Members(poolname string, partition string, subfolder string) ([]string, error) {
-	mbls := []string{}
+// Members return []interface{} as /mgmt/tm/ltm/pool?expandSubcollections=true returns to us
+// Key information like 'partition', 'name', 'address' are included.
+func (bc *BIGIPContext) Members(poolname string, partition string, subfolder string) ([]interface{}, error) {
+	defer utils.TimeItToPrometheus()()
+	mbls := []interface{}{}
 	mbsp, err := bc.Exist("ltm/pool", poolname+"/members", partition, subfolder)
 	if err != nil || mbsp == nil {
 		return mbls, err
 	}
 	mbs := *mbsp
-	for _, mb := range mbs["items"].([]interface{}) {
-		addr := (mb.(map[string]interface{}))["address"]
-		mbls = append(mbls, addr.(string))
-	}
-
-	return mbls, nil
+	return mbs["items"].([]interface{}), nil
 }
 
 func (bc *BIGIPContext) Arps() (*map[string]string, error) {
@@ -350,9 +348,9 @@ func (bc *BIGIPContext) DeployWithTrans(rr *[]RestRequest, transId float64) (int
 		case "POST":
 			url = bc.URL + r.ResUri
 		case "PATCH":
-			url = bc.URL + r.ResUri + "/" + refname(r.Partition, r.Subfolder, r.ResName)
+			url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
 		case "DELETE":
-			url = bc.URL + r.ResUri + "/" + refname(r.Partition, r.Subfolder, r.ResName)
+			url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
 			bbody = []byte{}
 		default:
 			return 0, fmt.Errorf("not support method: %s", method)

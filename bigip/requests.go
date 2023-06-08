@@ -189,6 +189,31 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 // got from BIG-IP, and concludes into a list of RestRequests indicating
 // which resource needs to be POST, PATCH or DELETE, and in which order.
 // The generated []RestRequest will be used by DoRestRequests function for execution in trasaction mode.
+// ocfg, ncfg format:
+//
+//	{
+//		"<folder name>": {
+//			"[ltm|net|...]/<resource type>/<resource name>": {
+//				"resource property key": "resource property value",
+//				"...": "..."
+//			}
+//		},
+//		"...": "..."
+//	}
+//
+// The data transformation is:
+//
+//	{ocfgs}             	{ncfgs}
+//
+// {typed-[rDels]}       {typed-[rCrts]}
+//
+//	[c]         [u]        [d]
+//
+//	        Existings
+//
+// u       c   u       c  d      n/a
+//
+//	[sorted-rrs]
 func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}) (*[]RestRequest, error) {
 	defer utils.TimeItToPrometheus()()
 	slog := utils.LogFromContext(bc.Context)
