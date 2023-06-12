@@ -35,6 +35,7 @@ func init() {
 		`net/tunnels/vxlan$`,
 		`net/tunnels/tunnel$`,
 		`net/fdb/tunnel$`,
+		`net/route$`,
 		`net/routing/bgp$`,
 		`net/self$`,
 		`gtm/datacenter`,
