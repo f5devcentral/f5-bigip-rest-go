@@ -249,6 +249,23 @@ func (bc *BIGIPContext) Ndps() (*map[string]string, error) {
 	return &ndps, nil
 }
 
+func (bc *BIGIPContext) Routes() (*map[string]string, error) {
+	defer utils.TimeItToPrometheus()()
+	routesp, err := bc.All("net/route")
+	if err != nil {
+		return nil, err
+	}
+
+	routes := map[string]string{}
+	items := (*routesp)["items"].([]interface{})
+	for _, i := range items {
+		mi := i.(map[string]interface{})
+		routes[mi["network"].(string)] = mi["gw"].(string)
+	}
+
+	return &routes, nil
+}
+
 func (bc *BIGIPContext) Fdbs(tunnelName string) (*map[string]string, error) {
 	defer utils.TimeItToPrometheus()()
 
