@@ -141,6 +141,29 @@ func (bc *BIGIPContext) Upload(name, content string) (string, error) {
 	}
 }
 
+func (bc *BIGIPContext) Restcall(endpoint, method string, headers map[string]string, body map[string]interface{}) error {
+	url := bc.URL + endpoint
+	hdrs := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": bc.Authorization,
+	}
+	for k, v := range headers {
+		hdrs[k] = v
+	}
+
+	bbody, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	payload := string(bbody)
+	code, resp, err := httpRequest(bc, bc.client, url, method, payload, hdrs)
+	if err != nil {
+		return err
+	}
+
+	return assertBigipResp20X(code, resp)
+}
+
 func (bc *BIGIPContext) All(kind string) (*map[string]interface{}, error) {
 	url := bc.URL + fmt.Sprintf("/mgmt/tm/%s", kind)
 	method := "GET"
