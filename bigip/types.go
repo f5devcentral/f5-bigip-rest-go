@@ -38,10 +38,3 @@ type BIGIPVersion struct {
 	Title   string
 	Version string
 }
-
-type PersistedConfig struct {
-	AS3   string
-	Rest  string
-	CmKey string
-	PsMap map[string]interface{}
-}

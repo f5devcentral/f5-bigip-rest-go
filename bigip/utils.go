@@ -28,6 +28,7 @@ func init() {
 		`ltm/persistence/\w+`,
 		`ltm/snat$`,
 		`ltm/rule$`,
+		`ltm/data-group/internal$`,
 		`ltm/virtual-address`,
 		`ltm/virtual$`,
 		`net/arp$`,

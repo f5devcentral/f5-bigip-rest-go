@@ -375,9 +375,8 @@ func (bc *BIGIPContext) DeletePartition(name string) error {
 	return bc.Delete("sys/folder", name, "", "")
 }
 
-func (bc *BIGIPContext) LoadDataGroup(dgkey string) (*PersistedConfig, error) {
-	dgname := "f5-kic_" + dgkey
-	resp, err := bc.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+func (bc *BIGIPContext) LoadDataGroup(dgname, partition string) ([]byte, error) {
+	resp, err := bc.Exist("ltm/data-group/internal", dgname, partition, "")
 	if err != nil {
 		return nil, err
 	}
@@ -386,139 +385,69 @@ func (bc *BIGIPContext) LoadDataGroup(dgkey string) (*PersistedConfig, error) {
 	}
 	if records, f := (*resp)["records"]; !f {
 		return nil, fmt.Errorf("failed to get records field")
+	} else if (*resp)["type"] != "string" {
+		return nil, fmt.Errorf("data group type is not string")
 	} else {
-		pc := PersistedConfig{}
-		b64as3 := ""
-		b64rest := ""
-		b64psmap := ""
+		b64bytes := []byte{}
 		for _, record := range records.([]interface{}) {
-			mrec := record.(map[string]interface{})
-			name := mrec["name"].(string)
-			if name == "cmkey" {
-				pc.CmKey = string(mrec["data"].(string))
-			} else if strings.HasPrefix(name, "as3") {
-				b64as3 += mrec["data"].(string)
-			} else if strings.HasPrefix(name, "rest") {
-				b64rest += mrec["data"].(string)
-			} else if strings.HasPrefix(name, "psmap") {
-				b64psmap += mrec["data"].(string)
-			} else {
-				return nil, fmt.Errorf("invalid unknown key: %s", name)
-			}
-		}
-		if b64as3 != "" {
-			if data, err := base64.StdEncoding.DecodeString(b64as3); err != nil {
-				return nil, err
-			} else {
-				pc.AS3 = string(data)
-			}
+			data := record.(map[string]interface{})["data"].(string)
+			b64bytes = append(b64bytes, []byte(data)...)
 		}
 
-		if b64rest != "" {
-			if data, err := base64.StdEncoding.DecodeString(b64rest); err != nil {
-				return nil, err
-			} else {
-				pc.Rest = string(data)
-			}
-		}
-
-		if b64psmap != "" {
-			if data, err := base64.StdEncoding.DecodeString(b64psmap); err != nil {
-				return nil, err
-			} else {
-				var psm map[string]interface{}
-				err := json.Unmarshal(data, &psm)
-				if err != nil {
-					return nil, err
-				}
-				pc.PsMap = psm
-			}
-		}
-
-		return &pc, nil
+		return base64.StdEncoding.DecodeString(string(b64bytes))
 	}
 }
 
-func (bc *BIGIPContext) SaveDataGroup(dgkey string, pc *PersistedConfig) error {
-	dgname := "f5-kic_" + dgkey
+func (bc *BIGIPContext) SaveDataGroup(dgname string, partition string, bytes []byte) error {
 	var err error
-	// failed with error:  16908375, 01020057:3: The string with more than 65535 characters cannot be stored in a message.
-	blocksize := 1024
 	records := []interface{}{}
 
-	resp, err := bc.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+	// failed with error:  16908375, 01020057:3: The string with more than 65535 characters cannot be stored in a message.
+	resp, err := bc.Exist("ltm/data-group/internal", dgname, partition, "")
 	if err != nil {
 		return err
 	}
 
-	if pc.CmKey != "" {
+	b64bytes := base64.StdEncoding.EncodeToString(bytes)
+	u := 1024
+	c := int(len(b64bytes) / u)
+	m := int(len(b64bytes) % u)
+	for i := 0; i < c; i++ {
 		records = append(records, map[string]string{
-			"name": "cmkey",
-			"data": pc.CmKey,
+			"name": fmt.Sprintf("%d", i),
+			"data": string(b64bytes[i*u : (i+1)*u]),
 		})
 	}
-
-	if pc.AS3 != "" {
-		b64as3 := base64.StdEncoding.EncodeToString([]byte(pc.AS3))
-		bas3s := utils.Split(b64as3, blocksize)
-		for i, d := range bas3s {
-			records = append(records, map[string]string{
-				"name": fmt.Sprintf("as3.%d", i),
-				"data": d,
-			})
-		}
-	}
-
-	if pc.Rest != "" {
-		b64rest := base64.StdEncoding.EncodeToString([]byte(pc.Rest))
-		brests := utils.Split(b64rest, blocksize)
-		for i, d := range brests {
-			records = append(records, map[string]string{
-				"name": fmt.Sprintf("rest.%d", i),
-				"data": d,
-			})
-		}
-	}
-
-	if len(pc.PsMap) != 0 {
-		bpsm, err := json.Marshal(pc.PsMap)
-		if err != nil {
-			return err
-		}
-		b64psm := base64.StdEncoding.EncodeToString(bpsm)
-		bpsms := utils.Split(b64psm, blocksize)
-		for i, d := range bpsms {
-			records = append(records, map[string]string{
-				"name": fmt.Sprintf("psmap.%d", i),
-				"data": d,
-			})
-		}
+	if m > 0 {
+		records = append(records, map[string]string{
+			"name": fmt.Sprintf("%d", c),
+			"data": string(b64bytes[c*u:]),
+		})
 	}
 
 	body := map[string]interface{}{
 		"name":      dgname,
 		"type":      "string",
-		"partition": "cis-c-tenant",
+		"partition": partition,
 		"records":   records,
 	}
 
 	if resp == nil {
-		err = bc.Deploy("ltm/data-group/internal", dgname, "cis-c-tenant", "", body)
+		err = bc.Deploy("ltm/data-group/internal", dgname, partition, "", body)
 	} else {
-		err = bc.Update("ltm/data-group/internal", dgname, "cis-c-tenant", "", body)
+		err = bc.Update("ltm/data-group/internal", dgname, partition, "", body)
 	}
 	return err
 }
 
-func (bc *BIGIPContext) DeleteDataGroup(dgkey string) error {
-	dgname := "f5-kic_" + dgkey
+func (bc *BIGIPContext) DeleteDataGroup(dgname, partition string) error {
 	var err error
-	resp, err := bc.Exist("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+	resp, err := bc.Exist("ltm/data-group/internal", dgname, partition, "")
 	if err != nil {
 		return err
 	}
 	if resp != nil {
-		err = bc.Delete("ltm/data-group/internal", dgname, "cis-c-tenant", "")
+		err = bc.Delete("ltm/data-group/internal", dgname, partition, "")
 	}
 	return err
 }
