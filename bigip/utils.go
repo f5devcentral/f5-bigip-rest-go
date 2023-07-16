@@ -167,16 +167,16 @@ func logRequest(ctx context.Context, method, url string, headers map[string]stri
 	uris := strings.Split(url, "/mgmt")
 	if len(uris) >= 2 {
 		uri := strings.Join(uris[1:], "/mgmt")
-		slog.Debugf("#### %s %s", method, uri)
+		slog.Tracef("#### %s %s", method, uri)
 	} else {
-		slog.Debugf("#### %s %s", method, url)
+		slog.Tracef("#### %s %s", method, url)
 	}
 	slog.Debugf("%s %s", method, url)
 	for k, v := range headers {
-		slog.Debugf("%s: %s", k, v)
+		slog.Tracef("%s: %s", k, v)
 	}
-	slog.Debugf("%s", body)
-	slog.Debugf("")
+	slog.Tracef("%s", body)
+	slog.Tracef("")
 }
 
 func uriname(s ...string) string {
