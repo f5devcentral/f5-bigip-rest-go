@@ -292,6 +292,9 @@ func GatherKinds(ocfg, ncfg *map[string]interface{}) []string {
 	}
 	if ocfg != nil {
 		for _, ress := range *ocfg {
+			if ress == nil {
+				continue
+			}
 			for tn := range ress.(map[string]interface{}) {
 				tnarr := strings.Split(tn, "/")
 				t := strings.Join(tnarr[0:len(tnarr)-1], "/")
@@ -301,6 +304,9 @@ func GatherKinds(ocfg, ncfg *map[string]interface{}) []string {
 	}
 	if ncfg != nil {
 		for _, ress := range *ncfg {
+			if ress == nil {
+				continue
+			}
 			for tn := range ress.(map[string]interface{}) {
 				tnarr := strings.Split(tn, "/")
 				t := strings.Join(tnarr[0:len(tnarr)-1], "/")
