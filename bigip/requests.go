@@ -145,6 +145,7 @@ func (bc *BIGIPContext) constructSharedRes(kind, name, partition, subfolder stri
 
 func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (*map[string]map[string]interface{}, error) {
 	defer utils.TimeItToPrometheus()()
+	slog := utils.LogFromContext(bc.Context)
 
 	exists := map[string]map[string]interface{}{}
 	partitions, err := bc.ListPartitions()
@@ -160,6 +161,7 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 			strings.HasPrefix(kind, "ltm/") ||
 			strings.HasPrefix(kind, "net/") ||
 			strings.HasPrefix(kind, "gtm/")) {
+			slog.Warnf("kind %s not support, yet", kind)
 			continue
 		}
 		exists[kind] = map[string]interface{}{}
