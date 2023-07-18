@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/f5devcentral/f5-bigip-rest-go/utils"
@@ -148,13 +149,6 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 	slog := utils.LogFromContext(bc.Context)
 
 	exists := map[string]map[string]interface{}{}
-	partitions, err := bc.ListPartitions()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list partitions for checking res existence: %s", err.Error())
-	}
-	if !utils.Contains(partitions, partition) {
-		return &exists, nil
-	}
 
 	for _, kind := range kinds {
 		if !(strings.HasPrefix(kind, "sys/") ||
@@ -167,7 +161,11 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 		exists[kind] = map[string]interface{}{}
 		resp, err := bc.All(fmt.Sprintf("%s?$filter=partition+eq+%s", kind, partition))
 		if err != nil {
-			return nil, fmt.Errorf("failed to list '%s' of %s: %s", kind, partition, err.Error())
+			if matched, e := regexp.MatchString("The requested folder (.*) was not found.", err.Error()); e == nil && matched {
+				return &exists, nil
+			} else {
+				return nil, fmt.Errorf("failed to list '%s' of %s: %s", kind, partition, err.Error())
+			}
 		}
 
 		if items, ok := (*resp)["items"]; !ok {
