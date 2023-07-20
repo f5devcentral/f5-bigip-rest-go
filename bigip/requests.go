@@ -214,18 +214,13 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 // u       c   u       c  d      n/a
 //
 //	[sorted-rrs]
-func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}) (*[]RestRequest, error) {
+func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string]interface{}, existings *map[string]map[string]interface{}) (*[]RestRequest, error) {
 	defer utils.TimeItToPrometheus()()
 	slog := utils.LogFromContext(bc.Context)
 
 	rDels := map[string][]RestRequest{}
 	rCrts := map[string][]RestRequest{}
 
-	kinds := GatherKinds(ocfg, ncfg)
-	existings, err := bc.GetExistingResources(partition, kinds)
-	if err != nil {
-		return nil, err
-	}
 	if ocfg != nil {
 		var err error
 		if rDels, err = bc.cfg2RestRequests(partition, "delete", *ocfg, existings); err != nil {

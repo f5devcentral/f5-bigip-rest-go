@@ -11,7 +11,14 @@ import (
 func deploy(bc *f5_bigip.BIGIPContext, partition string, ocfgs, ncfgs *map[string]interface{}) error {
 	defer utils.TimeItToPrometheus()()
 
-	cmds, err := bc.GenRestRequests(partition, ocfgs, ncfgs)
+	kinds := f5_bigip.GatherKinds(ocfgs, ncfgs)
+	existings, err := bc.GetExistingResources(partition, kinds)
+	if err != nil {
+		fmt.Printf("failed to get existing resource of kind %s for partition %s: %s", kinds, partition, err.Error())
+		panic(err)
+	}
+
+	cmds, err := bc.GenRestRequests(partition, ocfgs, ncfgs, existings)
 	if err != nil {
 		return err
 	}

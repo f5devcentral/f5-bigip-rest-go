@@ -175,8 +175,16 @@ func main() {
 		panic(err)
 	}
 
+	// get existing resources of kinds mentioned by ncfgs
+	kinds := f5_bigip.GatherKinds(nil, &ncfgs)
+	existings, err := bc.GetExistingResources(partition, kinds)
+	if err != nil {
+		fmt.Printf("failed to get existing resource of kind %s for partition %s: %s", kinds, partition, err.Error())
+		panic(err)
+	}
+
 	// generate the RestRequest list
-	if cmds, err := bc.GenRestRequests(partition, nil, &ncfgs); err != nil {
+	if cmds, err := bc.GenRestRequests(partition, nil, &ncfgs, existings); err != nil {
 		fmt.Printf("failed to generate rest requests for deploying: %s\n", err.Error())
 		panic(err)
 	} else {
@@ -199,7 +207,7 @@ func main() {
 	}
 
 	// reversely, we exchange the position of ncfgs and nil, a set of deletion RestRequest will be generated.
-	if cmds, err := bc.GenRestRequests(partition, &ncfgs, nil); err != nil {
+	if cmds, err := bc.GenRestRequests(partition, &ncfgs, nil, existings); err != nil {
 		fmt.Printf("failed to generate rest requests for deleting: %s\n", err.Error())
 		panic(err)
 	} else {
