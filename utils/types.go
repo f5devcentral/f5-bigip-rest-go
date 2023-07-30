@@ -1,6 +1,9 @@
 package utils
 
-import "log"
+import (
+	"log"
+	"sync"
+)
 
 type SLOG struct {
 	Level     int
@@ -9,3 +12,9 @@ type SLOG struct {
 }
 
 type CtxKeyType string
+
+type DeployQueue struct {
+	Items []interface{}
+	found chan bool
+	mutex sync.Mutex
+}

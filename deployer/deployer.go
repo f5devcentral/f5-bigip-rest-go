@@ -2,7 +2,6 @@ package deployer
 
 import (
 	"fmt"
-	"sync"
 
 	f5_bigip "github.com/f5devcentral/f5-bigip-rest-go/bigip"
 	"github.com/f5devcentral/f5-bigip-rest-go/utils"
@@ -51,19 +50,23 @@ func HandleRequest(bc *f5_bigip.BIGIPContext, r DeployRequest) error {
 	return nil
 }
 
-func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) (chan DeployRequest, *DeployResponses) {
-	pendingDeploys := make(chan DeployRequest, 16)
-	doneDeploys := &DeployResponses{
-		mutex: sync.Mutex{},
-		data:  []*DeployResponse{},
-	}
+func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) (*utils.DeployQueue, *utils.DeployQueue) {
+	pendingDeploys := utils.NewDeployQueue()
+	doneDeploys := utils.NewDeployQueue()
 	go func() {
 		for {
 			select {
 			case <-stopCh:
-				close(pendingDeploys)
 				return
-			case r := <-pendingDeploys:
+			default:
+				robj := pendingDeploys.Get()
+				if robj == nil {
+					err := fmt.Errorf("invalid request: nil")
+					resp := DeployResponse{DeployRequest: DeployRequest{}, Status: err}
+					doneDeploys.Add(resp)
+					continue
+				}
+				r := robj.(DeployRequest)
 				slog := utils.LogFromContext(r.Context)
 				slog.Infof("Processing request: %s", r.Meta)
 				errs := []error{}
@@ -77,7 +80,7 @@ func Deployer(stopCh chan struct{}, bigips []*f5_bigip.BIGIP) (chan DeployReques
 				}
 
 				resp := DeployResponse{DeployRequest: r, Status: utils.MergeErrors(errs)}
-				doneDeploys.Append(&resp)
+				doneDeploys.Add(resp)
 			}
 		}
 	}()
