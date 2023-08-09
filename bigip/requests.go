@@ -279,14 +279,14 @@ func (bc *BIGIPContext) GenRestRequests(partition string, ocfg, ncfg *map[string
 
 	// TODO: handle [{"ResName":"120.0.0.0%!"(MISSING), issue.
 	if bcmds, err := json.Marshal(cmds); err == nil {
-		slog.Debugf("commands: %s", bcmds)
+		slog.Tracef("commands: %s", bcmds)
 	}
 	return &cmds, nil
 }
 
 func (bc *BIGIPContext) cfg2RestRequests(partition, operation string, cfg map[string]interface{}, exists *map[string]map[string]interface{}) (map[string][]RestRequest, error) {
 	slog := utils.LogFromContext(bc.Context)
-	slog.Debugf("generating '%s' cmds for partition %s's config", operation, partition)
+	slog.Tracef("generating '%s' cmds for partition %s's config", operation, partition)
 	rrs := map[string][]RestRequest{}
 
 	for fn, ress := range cfg {

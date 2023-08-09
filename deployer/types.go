@@ -10,6 +10,7 @@ type DeployRequest struct {
 	From      *map[string]interface{}
 	To        *map[string]interface{}
 	Partition string
+	AS3       bool
 	Context   context.Context
 }
 

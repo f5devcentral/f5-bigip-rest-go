@@ -7,21 +7,33 @@ import (
 	"github.com/f5devcentral/f5-bigip-rest-go/utils"
 )
 
-func deploy(bc *f5_bigip.BIGIPContext, partition string, ocfgs, ncfgs *map[string]interface{}) error {
+func deploy(bc *f5_bigip.BIGIPContext, partition string, ocfgs, ncfgs *map[string]interface{}, as3mode bool) error {
 	defer utils.TimeItToPrometheus()()
 
-	kinds := f5_bigip.GatherKinds(ocfgs, ncfgs)
-	existings, err := bc.GetExistingResources(partition, kinds)
-	if err != nil {
-		fmt.Printf("failed to get existing resource of kind %s for partition %s: %s", kinds, partition, err.Error())
-		panic(err)
-	}
+	if as3mode {
+		if ncfgs == nil {
+			return fmt.Errorf("as3 body is empty, quit as error")
+		}
+		switch (*ncfgs)["class"] {
+		case "AS3":
+			return bc.Restcall("/mgmt/shared/appsvcs/declare", "POST", nil, *ncfgs)
+		default:
+			return fmt.Errorf("not support, class %s", (*ncfgs)["class"])
+		}
+	} else {
+		kinds := f5_bigip.GatherKinds(ocfgs, ncfgs)
+		existings, err := bc.GetExistingResources(partition, kinds)
+		if err != nil {
+			fmt.Printf("failed to get existing resource of kind %s for partition %s: %s", kinds, partition, err.Error())
+			panic(err)
+		}
 
-	cmds, err := bc.GenRestRequests(partition, ocfgs, ncfgs, existings)
-	if err != nil {
-		return err
+		cmds, err := bc.GenRestRequests(partition, ocfgs, ncfgs, existings)
+		if err != nil {
+			return err
+		}
+		return bc.DoRestRequests(cmds)
 	}
-	return bc.DoRestRequests(cmds)
 }
 
 func HandleRequest(bc *f5_bigip.BIGIPContext, r DeployRequest) error {
@@ -38,7 +50,7 @@ func HandleRequest(bc *f5_bigip.BIGIPContext, r DeployRequest) error {
 			return fmt.Errorf("failed to deploy partition %s: %s", r.Partition, err.Error())
 		}
 	}
-	if err := deploy(bc, r.Partition, r.From, r.To); err != nil {
+	if err := deploy(bc, r.Partition, r.From, r.To, r.AS3); err != nil {
 		return fmt.Errorf("failed to do deployment to %s: %s", bc.URL, err.Error())
 	}
 	if r.Context.Value(CtxKey_DeletePartition) != nil {
