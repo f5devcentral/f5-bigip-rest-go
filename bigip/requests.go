@@ -11,6 +11,11 @@ import (
 )
 
 func (bc *BIGIPContext) DoRestRequests(rr *[]RestRequest) error {
+	if rr == nil || len(*rr) == 0 {
+		slog := utils.LogFromContext(bc.Context)
+		slog.Debugf("empty rest requests, skip deploying")
+		return nil
+	}
 	if transId, err := bc.MakeTrans(); err != nil {
 		return err
 	} else {
