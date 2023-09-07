@@ -160,13 +160,13 @@ func Test_DeployQueue_Filter(t *testing.T) {
 		return x.Name == y.Name && x.Partition == y.Partition
 	}
 
-	fs := dq.Filter(makeDR(0), compare)
+	fs := dq.Filter(makeDR(0), compare, false)
 	if len(fs) != 0 {
 		t.Errorf("there should no item be filtered.")
 	}
 
 	dq.Add(makeDR(0))
-	fs = dq.Filter(makeDR(0), compare)
+	fs = dq.Filter(makeDR(0), compare, false)
 	if len(fs) != 1 {
 		t.Errorf("filtered fs should be len of 1")
 	}
@@ -176,13 +176,48 @@ func Test_DeployQueue_Filter(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		dq.Add(makeDR(i))
 	}
-	fs = dq.Filter(makeDR(0), compare)
+	fs = dq.Filter(makeDR(0), compare, false)
 	if len(fs) != 1 {
 		t.Errorf("filtered fs should be len of 1")
 	}
 	r := dq.Get()
 	if !compare(r, makeDR(1)) {
 		t.Errorf("get should work and return dr1")
+	}
+}
+
+func Test_DeployQueue_Filter_nilfunc(t *testing.T) {
+	dq := NewDeployQueue()
+
+	dq.Add(makeDR(0))
+	fs := dq.Filter(makeDR(0), nil, true)
+	if len(fs) != 0 {
+		t.Errorf("there should no item be filtered.")
+	}
+}
+
+func Test_DeployQueue_Filter_headOnly(t *testing.T) {
+	dq := NewDeployQueue()
+	compare := func(a, b interface{}) bool {
+		x := a.(DeployRequest)
+		y := b.(DeployRequest)
+		return x.Name == y.Name && x.Partition == y.Partition
+	}
+
+	for _, n := range []int{0, 1, 2, 3, 4, 5, 0, 0, 0, 6, 7, 8, 9} {
+		dq.Add(makeDR(n))
+	}
+	fs := dq.Filter(makeDR(0), compare, true)
+	if len(fs) != 1 {
+		t.Errorf("there should be 1 item been filtered.")
+	}
+
+	fs = dq.Filter(makeDR(0), compare, false)
+	if len(fs) != 3 {
+		t.Errorf("there should be 3 item been filtered.")
+	}
+	if dq.Len() != 9 {
+		t.Errorf("queue should left with length of 9")
 	}
 }
 
@@ -228,7 +263,7 @@ func Benchmark_DeployQueue_Filter(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fs := dq.Filter(makeDR(i), compare)
+		fs := dq.Filter(makeDR(i), compare, false)
 		if len(fs) != 1 || dq.Len() != i {
 			b.Errorf("filter runs error")
 		}

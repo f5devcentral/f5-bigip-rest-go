@@ -48,7 +48,13 @@ func (dq *DeployQueue) Get() interface{} {
 	return rlt
 }
 
-func (dq *DeployQueue) Filter(item interface{}, f func(a, b interface{}) bool) []interface{} {
+// Filter is used to filter items from queue:
+//
+// "item" is the one to compare with, will be passed as the first argument to cmp function;
+// "cmp" is a compare function to match elements, if cmp == nil, returns []interface{}{};
+// "headOnly == true" indicates filter stops at the first mismatch,
+// or it go through all elements for matching.
+func (dq *DeployQueue) Filter(item interface{}, cmp func(a, b interface{}) bool, headOnly bool) []interface{} {
 	dq.mutex.Lock()
 	defer dq.mutex.Unlock()
 
@@ -59,11 +65,16 @@ func (dq *DeployQueue) Filter(item interface{}, f func(a, b interface{}) bool) [
 	}
 
 	<-dq.found
-	for _, n := range dq.Items {
-		if f(item, n) {
+	for i, n := range dq.Items {
+		if cmp != nil && cmp(item, n) {
 			rlt = append(rlt, n)
 		} else {
-			left = append(left, n)
+			if headOnly {
+				left = append(left, dq.Items[i:]...)
+				break
+			} else {
+				left = append(left, n)
+			}
 		}
 	}
 	dq.Items = left
