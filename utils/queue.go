@@ -48,6 +48,32 @@ func (dq *DeployQueue) Get() interface{} {
 	return rlt
 }
 
+func (dq *DeployQueue) Filter(item interface{}, f func(a, b interface{}) bool) []interface{} {
+	dq.mutex.Lock()
+	defer dq.mutex.Unlock()
+
+	left := []interface{}{}
+	rlt := []interface{}{}
+	if len(dq.Items) == 0 {
+		return rlt
+	}
+
+	<-dq.found
+	for _, n := range dq.Items {
+		if f(item, n) {
+			rlt = append(rlt, n)
+		} else {
+			left = append(left, n)
+		}
+	}
+	dq.Items = left
+	if len(dq.Items) > 0 {
+		dq.found <- true
+	}
+
+	return rlt
+}
+
 func NewDeployQueue() *DeployQueue {
 	dq := &DeployQueue{
 		mutex: sync.Mutex{},

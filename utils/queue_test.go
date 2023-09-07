@@ -152,6 +152,40 @@ func Test_DeployQueue_Cocurrency(t *testing.T) {
 	}
 }
 
+func Test_DeployQueue_Filter(t *testing.T) {
+	dq := NewDeployQueue()
+	compare := func(a, b interface{}) bool {
+		x := a.(DeployRequest)
+		y := b.(DeployRequest)
+		return x.Name == y.Name && x.Partition == y.Partition
+	}
+
+	fs := dq.Filter(makeDR(0), compare)
+	if len(fs) != 0 {
+		t.Errorf("there should no item be filtered.")
+	}
+
+	dq.Add(makeDR(0))
+	fs = dq.Filter(makeDR(0), compare)
+	if len(fs) != 1 {
+		t.Errorf("filtered fs should be len of 1")
+	}
+	if dq.Len() != 0 {
+		t.Errorf("queue should be empty now.")
+	}
+	for i := 0; i < 10; i++ {
+		dq.Add(makeDR(i))
+	}
+	fs = dq.Filter(makeDR(0), compare)
+	if len(fs) != 1 {
+		t.Errorf("filtered fs should be len of 1")
+	}
+	r := dq.Get()
+	if !compare(r, makeDR(1)) {
+		t.Errorf("get should work and return dr1")
+	}
+}
+
 func Benchmark_DeployQueue_Add(b *testing.B) {
 	dq := NewDeployQueue()
 	b.ResetTimer()
@@ -177,5 +211,26 @@ func Benchmark_DeployQueue_Get(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		dq.Get()
+	}
+}
+
+func Benchmark_DeployQueue_Filter(b *testing.B) {
+	dq := NewDeployQueue()
+	for i := 0; i < b.N; i++ {
+		dq.Add(makeDR(i))
+	}
+
+	compare := func(a, b interface{}) bool {
+		x := a.(DeployRequest)
+		y := b.(DeployRequest)
+		return x.Name == y.Name && x.Partition == y.Partition
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fs := dq.Filter(makeDR(i), compare)
+		if len(fs) != 1 || dq.Len() != i {
+			b.Errorf("filter runs error")
+		}
 	}
 }
