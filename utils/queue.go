@@ -50,11 +50,10 @@ func (dq *DeployQueue) Get() interface{} {
 
 // Filter is used to filter items from queue:
 //
-// "item" is the one to compare with, will be passed as the first argument to cmp function;
+// "item" is the element to compare with, will be passed as the first argument to cmp and stop functions;
 // "cmp" is a compare function to match elements, if cmp == nil, returns []interface{}{};
-// "headOnly == true" indicates filter stops at the first mismatch,
-// or it go through all elements for matching.
-func (dq *DeployQueue) Filter(item interface{}, cmp func(a, b interface{}) bool, headOnly bool) []interface{} {
+// "stop" is a function indicates filter to stop traversing, if stop == nil, Filter will traverse all items of DeployQueue.
+func (dq *DeployQueue) Filter(item interface{}, cmp func(a, b interface{}) bool, stop func(a, b interface{}) bool) []interface{} {
 	dq.mutex.Lock()
 	defer dq.mutex.Unlock()
 
@@ -63,18 +62,24 @@ func (dq *DeployQueue) Filter(item interface{}, cmp func(a, b interface{}) bool,
 	if len(dq.Items) == 0 {
 		return rlt
 	}
+	if cmp == nil && stop == nil {
+		return rlt
+	}
 
 	<-dq.found
-	for i, n := range dq.Items {
-		if cmp != nil && cmp(item, n) {
-			rlt = append(rlt, n)
+	for i := 0; i < len(dq.Items); i++ {
+		if cmp != nil && cmp(item, dq.Items[i]) {
+			rlt = append(rlt, dq.Items[i])
 		} else {
-			if headOnly {
-				left = append(left, dq.Items[i:]...)
-				break
-			} else {
-				left = append(left, n)
-			}
+			left = append(left, dq.Items[i])
+		}
+
+		if i+1 >= len(dq.Items) {
+			break
+		}
+		if stop != nil && stop(item, dq.Items[i+1]) {
+			left = append(left, dq.Items[i+1:]...)
+			break
 		}
 	}
 	dq.Items = left
