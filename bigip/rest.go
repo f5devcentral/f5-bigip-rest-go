@@ -388,13 +388,13 @@ func (bc *BIGIPContext) DeployWithTrans(rr *[]RestRequest, transId float64) (int
 		case "POST":
 			url = bc.URL + r.ResUri
 		case "PATCH":
-			if strings.Index(r.ResUri, utils.Refname(r.Partition, r.Subfolder, "")) == 0 {
+			if !strings.Contains(r.ResUri, utils.Refname(r.Partition, r.Subfolder, "")) {
 				url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
 			} else {
 				url = bc.URL + r.ResUri + "/" + r.ResName
 			}
 		case "DELETE":
-			if strings.Index(r.ResUri, utils.Refname(r.Partition, r.Subfolder, "")) == 0 {
+			if !strings.Contains(r.ResUri, utils.Refname(r.Partition, r.Subfolder, "")) {
 				url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
 			} else {
 				url = bc.URL + r.ResUri + "/" + r.ResName
