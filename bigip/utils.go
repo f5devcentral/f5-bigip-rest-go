@@ -15,6 +15,8 @@ import (
 )
 
 func init() {
+	// items in the list have depending relations.
+	// the later one's creation depends on the former ones.
 	ResOrder = []string{
 		`sys/folder`,
 		`shared/file-transfer/uploads`,
@@ -33,12 +35,14 @@ func init() {
 		`ltm/virtual$`,
 		`net/arp$`,
 		`net/ndp$`,
+		`net/vlan`,
+		`net/self$`,
 		`net/tunnels/vxlan$`,
 		`net/tunnels/tunnel$`,
-		`net/fdb/tunnel$`,
+		`net/fdb/tunnel/.*/records$`,
 		`net/route$`,
 		`net/routing/bgp$`,
-		`net/self$`,
+		`net/routing/bgp/.*/neighbor$`,
 		`gtm/datacenter`,
 		`gtm/server`,
 		`gtm/monitor/\w+`,

@@ -388,9 +388,17 @@ func (bc *BIGIPContext) DeployWithTrans(rr *[]RestRequest, transId float64) (int
 		case "POST":
 			url = bc.URL + r.ResUri
 		case "PATCH":
-			url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
+			if strings.Index(r.ResUri, utils.Refname(r.Partition, r.Subfolder, "")) == 0 {
+				url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
+			} else {
+				url = bc.URL + r.ResUri + "/" + r.ResName
+			}
 		case "DELETE":
-			url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
+			if strings.Index(r.ResUri, utils.Refname(r.Partition, r.Subfolder, "")) == 0 {
+				url = bc.URL + r.ResUri + "/" + utils.Refname(r.Partition, r.Subfolder, r.ResName)
+			} else {
+				url = bc.URL + r.ResUri + "/" + r.ResName
+			}
 			bbody = []byte{}
 		default:
 			return 0, fmt.Errorf("not support method: %s", method)
