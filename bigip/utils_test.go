@@ -2,6 +2,8 @@ package f5_bigip
 
 import (
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 
 	utils "github.com/f5devcentral/f5-bigip-rest-go/utils"
@@ -576,6 +578,31 @@ func Test_refname(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := utils.Refname(tt.args.partition, tt.args.subfolder, tt.args.name); got != tt.want {
 				t.Errorf("refname() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestKindIsSupported(t *testing.T) {
+	tests := []string{
+		// TODO: Add test cases.
+		"sys/folder true",
+		"net/routing false",
+		"net/routing/bgp true",
+		"sys/file/ssl-cert true",
+		"ltm/monitor/http true",
+		"ltm/data-group/internal true",
+		"ltm/virtualaaa false",
+		"net/fdb/tunnel/~Common~fl-tunnel/records true",
+		"net/routing/bgp/~Common~k8s-bgp/neighbor true",
+	}
+	for _, tt := range tests {
+		t.Run(tt, func(t *testing.T) {
+			kind := strings.Split(tt, " ")[0]
+			bl := strings.Split(tt, " ")[1]
+			want, _ := strconv.ParseBool(bl)
+			if got := KindIsSupported(kind); got != want {
+				t.Errorf("KindIsSupported(%s) = %v, want %v", kind, got, want)
 			}
 		})
 	}

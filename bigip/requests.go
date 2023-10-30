@@ -155,19 +155,21 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 
 	exists := map[string]map[string]interface{}{}
 
+	regxNotfound := regexp.MustCompile(`The requested \w+ (.*) was not found.`)
+	regxNoFolder := regexp.MustCompile(`The requested folder (.*) was not found.`)
+
 	for _, kind := range kinds {
-		if !(strings.HasPrefix(kind, "sys/") ||
-			strings.HasPrefix(kind, "ltm/") ||
-			strings.HasPrefix(kind, "net/") ||
-			strings.HasPrefix(kind, "gtm/")) {
-			slog.Warnf("kind %s not support, yet", kind)
+		if !KindIsSupported(kind) {
+			slog.Errorf("kind %s not support, yet", kind)
 			continue
 		}
 		exists[kind] = map[string]interface{}{}
 		resp, err := bc.All(fmt.Sprintf("%s?$filter=partition+eq+%s", kind, partition))
 		if err != nil {
-			if matched, e := regexp.MatchString("The requested folder (.*) was not found.", err.Error()); e == nil && matched {
+			if regxNoFolder.MatchString(err.Error()) {
 				return &exists, nil
+			} else if regxNotfound.MatchString(err.Error()) {
+				continue
 			} else {
 				return nil, fmt.Errorf("failed to list '%s' of %s: %s", kind, partition, err.Error())
 			}

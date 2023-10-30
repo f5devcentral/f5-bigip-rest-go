@@ -444,3 +444,13 @@ func layoutCmds(c, d, u []RestRequest) []RestRequest {
 
 	return cmds
 }
+
+func KindIsSupported(kind string) bool {
+	for _, k := range ResOrder {
+		krex := regexp.MustCompile(k)
+		if krex.MatchString(kind) {
+			return true
+		}
+	}
+	return false
+}
