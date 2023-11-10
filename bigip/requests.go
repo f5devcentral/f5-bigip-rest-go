@@ -176,7 +176,8 @@ func (bc *BIGIPContext) GetExistingResources(partition string, kinds []string) (
 		}
 
 		if items, ok := (*resp)["items"]; !ok {
-			return nil, fmt.Errorf("failed to get items from response")
+			// return nil, fmt.Errorf("failed to get items from response")
+			slog.Warnf("failed to get items from response for %s", kind)
 		} else {
 			for _, item := range items.([]interface{}) {
 				props := item.(map[string]interface{})
@@ -456,13 +457,15 @@ func (bc *BIGIPContext) DeleteDataGroup(dgname, partition string) error {
 
 func (bc *BIGIPContext) ListPartitions() ([]string, error) {
 	partitions := []string{}
+	slog := utils.LogFromContext(bc)
 	resp, err := bc.All("sys/folder")
 	if err != nil {
 		return partitions, fmt.Errorf("failed to list partitions: %s", err.Error())
 	}
 
 	if items, ok := (*resp)["items"]; !ok {
-		return partitions, fmt.Errorf("failed to get items from response")
+		// return partitions, fmt.Errorf("failed to get items from response")
+		slog.Warnf("failed to get items from response when listing partition")
 	} else {
 		for _, item := range items.([]interface{}) {
 			props := item.(map[string]interface{})
