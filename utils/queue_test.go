@@ -306,6 +306,8 @@ func Test_DeployQueue_Filter_stop3(t *testing.T) {
 	}
 }
 
+//go test -benchmem -run=^$ -bench "^.*$" github.com/f5devcentral/f5-bigip-rest-go/utils
+
 func Benchmark_DeployQueue_Add(b *testing.B) {
 	dq := NewDeployQueue()
 	b.ResetTimer()
